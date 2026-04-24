@@ -1,0 +1,73 @@
+# ====== OS ======
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+$RECYCLE.BIN/
+
+# ====== IDE / Editors ======
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+*.swp
+*.swo
+
+# ====== Logs / Env ======
+*.log
+logs/
+.env
+.env.*
+!.env.example
+
+# ====== Frontend (Angular / Node) ======
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/coverage/
+frontend/tmp/
+frontend/out-tsc/
+frontend/.nx/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+frontend/.pnpm-store/
+
+# ====== Backend (Spring / Maven / Gradle / Java) ======
+backend/target/
+backend/build/
+backend/out/
+backend/.gradle/
+backend/!gradle/wrapper/gradle-wrapper.jar
+backend/bin/
+backend/*.class
+backend/hs_err_pid*
+backend/replay_pid*
+
+# ====== Build / Packaging ======
+*.jar
+!**/gradle/wrapper/gradle-wrapper.jar
+!**/.mvn/wrapper/maven-wrapper.jar
+*.war
+*.ear
+*.zip
+*.tar
+*.tar.gz
+
+# ====== Test / Coverage ======
+coverage/
+*.lcov
+.nyc_output/
+
+# ====== Docker / Local infra ======
+.docker/
+docker-compose.override.yml
+
+# ====== AI / Tooling caches ======
+.claude/local/
+.cache/
