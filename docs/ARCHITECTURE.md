@@ -2,139 +2,236 @@
 
 ## 1. Overview
 
-The-Dogs is a full-stack web application built with a clean separation between an Angular single-page frontend and a Spring Boot REST/JSON backend. The repository is a polyrepo-in-monorepo: `frontend/` and `backend/` are independently buildable and deployable, sharing only the API contract documented in `docs/`.
+The-Dogs is **enterprise SaaS for dog trainers**. It is a Progressive Web App (PWA) with an Angular frontend and a Spring Boot backend, persisted in PostgreSQL, secured with JWT-based Spring Security + RBAC, and built end-to-end with an AI agent team (see [AI_NATIVE.md](AI_NATIVE.md)).
+
+### Initial modules
+
+| Module     | Surface                                       |
+| ---------- | --------------------------------------------- |
+| Dogs       | List + form CRUD                              |
+| Notes      | List + form CRUD, scoped per dog              |
+| Scheduler  | Calendar UI for client meetings (CRUD events) |
+
+### High-level diagram
 
 ```
-┌──────────────┐    HTTPS / JSON    ┌────────────────┐    JDBC    ┌──────────────┐
-│  Angular SPA │ ─────────────────▶ │ Spring Boot API│ ─────────▶ │  PostgreSQL  │
-└──────────────┘                    └────────────────┘            └──────────────┘
-       ▲                                    │
-       │                                    ▼
-       │                             OpenAPI / Swagger
-       └──────────── auth (JWT/OIDC) ───────┘
+┌────────────────────┐    HTTPS / JSON     ┌─────────────────────┐    JDBC    ┌──────────────┐
+│ Angular PWA (SPA)  │ ─────────────────▶  │ Spring Boot REST API│ ─────────▶ │  PostgreSQL  │
+│  + ServiceWorker   │                     │  Spring Security    │            │   (17.x)     │
+│  + IndexedDB cache │ ◀───  JWT bearer ── │  Hibernate / JPA    │            └──────────────┘
+└────────────────────┘                     └─────────────────────┘
+        ▲                                           │
+        │                                           ▼
+        └────── OpenAPI 3.1 (springdoc) ────────────┘
 ```
 
 ## 2. Languages & Versions
 
-Newest stable assumed at project bootstrap (May 2026).
+Newest stable assumed at project bootstrap (May 2026). All version assumptions are validated against [**Context7 MCP**](#6-mcp-servers) before generating code so we don't ship legacy snippets.
 
 ### Frontend
-| Tool        | Version          | Notes                                    |
-| ----------- | ---------------- | ---------------------------------------- |
-| Angular     | 21.x             | Standalone components, signals, zoneless |
-| TypeScript  | 5.7+             | Strict mode on                           |
-| Node.js     | 22 LTS           | Required for Angular CLI 21              |
-| Package mgr | pnpm 9.x         | Faster, lockfile-stable installs         |
-| RxJS        | 7.8+             | Used sparingly; signals preferred        |
-| Testing     | Vitest + Playwright | Unit + e2e                            |
-| Styling     | Tailwind CSS 4.x | Utility-first, JIT engine                |
+| Tool             | Version  | Notes                                                         |
+| ---------------- | -------- | ------------------------------------------------------------- |
+| Angular          | 21.x     | Standalone components, **signals + NgRx Signal Store**, zoneless |
+| TypeScript       | 5.7+     | `strict: true`                                                |
+| Node.js          | 22 LTS   | Required for Angular CLI 21                                   |
+| Package mgr      | **npm 10+** | Lockfile committed (`package-lock.json`)                  |
+| RxJS             | 7.8+     | Used at boundaries; signals preferred for app state           |
+| State            | NgRx Signal Store 18.x | Lightweight, signal-native, `withEntities` for lists |
+| UI components    | **PrimeNG 18.x** (Apache-2.0) | Tables, forms, FullCalendar wrapper for scheduler |
+| Icons            | **lucide-angular** (ISC) | Primary icon set; PrimeIcons available as fallback |
+| Styling          | Tailwind CSS 4.x + PrimeNG theme tokens | Utility-first, JIT             |
+| PWA              | `@angular/pwa` schematic | Service Worker, manifest, install prompt, offline cache |
+| Testing          | Vitest (unit) + Playwright (e2e) + axe-core (a11y) |                     |
 
 ### Backend
-| Tool         | Version         | Notes                                       |
-| ------------ | --------------- | ------------------------------------------- |
-| Java         | 25 LTS          | Records, pattern matching, virtual threads  |
-| Spring Boot  | 3.5.x           | Spring Framework 6.2                        |
-| Build        | Gradle 8.x (Kotlin DSL) | `gradlew` committed                 |
-| Web          | Spring Web MVC  | Virtual-thread executor enabled             |
-| Persistence  | Spring Data JPA + Hibernate 6.x | PostgreSQL driver           |
-| Migrations   | Flyway          | Versioned SQL migrations under `backend/src/main/resources/db/migration` |
-| Validation   | Jakarta Validation (Hibernate Validator) |                  |
-| Auth         | Spring Security 6 + OAuth2 Resource Server | JWT bearer       |
-| Testing      | JUnit 5, Testcontainers, MockMvc / RestAssured | Real Postgres in tests |
-| API docs     | springdoc-openapi 2.x | Generates OpenAPI 3.1 spec            |
+| Tool                 | Version          | Notes                                              |
+| -------------------- | ---------------- | -------------------------------------------------- |
+| Java                 | 25 LTS           | Records, pattern matching, virtual threads         |
+| Spring Boot          | 3.5.x            | Spring Framework 6.2                               |
+| Build                | **Maven 3.9.x**  | `mvnw` wrapper committed                           |
+| Web                  | Spring Web MVC   | Virtual-thread executor enabled                    |
+| Persistence          | Spring Data JPA + **Hibernate 6.x** | PostgreSQL driver               |
+| Boilerplate          | **Lombok 1.18.x**| `@Getter`/`@Setter`/`@Builder` (NOT `@Data` on JPA entities — see §7) |
+| Migrations           | Flyway           | `backend/src/main/resources/db/migration`          |
+| Validation           | Jakarta Validation (Hibernate Validator) |                          |
+| Security             | Spring Security 6 | JWT bearer, RBAC via authorities (`ROLE_TRAINER`, `ROLE_ADMIN`) |
+| Mapping              | MapStruct 1.6.x  | Compile-time DTO ↔ entity mappers                  |
+| Testing              | JUnit 5, Testcontainers (Postgres), MockMvc, RestAssured |        |
+| API docs             | springdoc-openapi 2.x | Generates OpenAPI 3.1                         |
 
-### Infrastructure (local-first)
-| Tool         | Version    | Purpose                       |
-| ------------ | ---------- | ----------------------------- |
-| Docker       | latest     | Local Postgres, app images    |
-| Docker Compose | v2       | One-command local stack       |
-| PostgreSQL   | 17.x       | Primary datastore             |
-| GitHub Actions | n/a      | CI: build, test, lint, scan   |
+### Infrastructure
+| Tool             | Version | Purpose                                              |
+| ---------------- | ------- | ---------------------------------------------------- |
+| Docker           | latest  | Local Postgres, app images                           |
+| Docker Compose   | v2      | One-command local stack                              |
+| PostgreSQL       | 17.x    | Primary datastore                                    |
+| GitHub Actions   | n/a     | CI: build, test, lint, security scan, container build |
 
-## 3. Repository Layout (target)
+## 3. Repository Layout
 
 ```
 The-Dogs/
 ├── .gitignore
 ├── README.md
-├── docker-compose.yml          # postgres, backend, frontend (later)
+├── LICENSE                          # proprietary, all rights reserved (TBD — see ADR-0008)
+├── docker-compose.yml               # postgres + backend + frontend (added during scaffold)
+├── .github/workflows/               # CI (build, test, scan, container)
 ├── docs/
-│   ├── ARCHITECTURE.md         # this file
-│   ├── AI_NATIVE.md            # AI-native workflow & skills
-│   ├── adr/                    # Architecture Decision Records
-│   └── api/                    # OpenAPI snapshots, contract notes
-├── frontend/                   # Angular workspace (`ng new the-dogs ...`)
+│   ├── ARCHITECTURE.md              # this file
+│   ├── AI_NATIVE.md                 # agent team + workflow
+│   ├── adr/                         # Architecture Decision Records
+│   │   ├── 0001-stack-and-build-tools.md
+│   │   ├── 0002-domain-scope.md
+│   │   ├── 0003-auth-jwt-rbac.md
+│   │   ├── 0004-frontend-state.md
+│   │   ├── 0005-ui-component-library.md
+│   │   ├── 0006-pwa.md
+│   │   ├── 0007-ai-team-composition.md
+│   │   └── 0008-license.md          # pending decision
+│   ├── specs/                       # feature briefs, one file per feature
+│   └── api/                         # openapi.yaml snapshots, schema.sql
+├── frontend/                        # Angular workspace
 │   ├── src/
+│   │   ├── app/
+│   │   │   ├── core/                # auth, http interceptors, guards
+│   │   │   ├── shared/              # ui primitives, pipes, directives
+│   │   │   ├── features/
+│   │   │   │   ├── dogs/
+│   │   │   │   ├── notes/
+│   │   │   │   └── scheduler/
+│   │   │   └── layout/
+│   │   ├── manifest.webmanifest
+│   │   └── ngsw-config.json
 │   ├── angular.json
 │   ├── package.json
 │   └── tsconfig*.json
-└── backend/                    # Gradle multi-module possible later
-    ├── src/main/java/...
+└── backend/
+    ├── src/main/java/com/thedogs/
+    │   ├── ThedogsApplication.java
+    │   ├── config/                  # security, openapi, jpa, virtual threads
+    │   ├── common/                  # base entities, error handlers, utils
+    │   └── modules/
+    │       ├── dogs/                # controller, service, repo, entity, dto, mapper
+    │       ├── notes/
+    │       └── scheduler/
     ├── src/main/resources/
+    │   ├── application.yml
+    │   └── db/migration/V1__init.sql ...
     ├── src/test/java/...
-    ├── build.gradle.kts
-    └── settings.gradle.kts
+    ├── pom.xml
+    └── mvnw, mvnw.cmd, .mvn/
 ```
 
-## 4. API Contract
+## 4. Domain Model (initial sketch)
+
+```
+User (trainer)        Client                Dog                  Note               Appointment
+─────────────         ─────────             ─────                ─────              ───────────
+id (uuid)             id                    id                   id                 id
+email                 trainer_id            client_id            dog_id             trainer_id
+password_hash         name                  name                 trainer_id         client_id
+roles                 phone                 breed                title              starts_at
+created_at            email                 birthdate            body (text)        ends_at
+                      notes                 sex                  created_at         location
+                                            metadata jsonb       updated_at         status
+                                            archived                                notes
+```
+
+Refined per feature spec under `docs/specs/`. RBAC: `ROLE_TRAINER` sees only own clients/dogs; `ROLE_ADMIN` sees all.
+
+## 5. API Contract
 
 - REST/JSON over HTTPS, base path `/api/v1`.
-- OpenAPI 3.1 spec generated by springdoc, committed under `docs/api/openapi.yaml` on each backend release.
-- Frontend types generated from the OpenAPI spec via `openapi-typescript` to keep DTOs in sync.
+- Resources: `/dogs`, `/dogs/{id}/notes`, `/clients`, `/appointments`, `/auth/login`, `/auth/refresh`, `/me`.
+- OpenAPI 3.1 generated by springdoc, committed under `docs/api/openapi.yaml` on every backend release.
+- Frontend types generated from the OpenAPI spec via `openapi-typescript` (skill `api-sync`).
+- Pagination: cursor-based (`?cursor=…&limit=…`) for lists.
+- Error format: RFC 7807 `application/problem+json`.
 
-## 5. Environments
+## 6. MCP Servers
 
-| Env   | Frontend                | Backend                  | DB                      |
-| ----- | ----------------------- | ------------------------ | ----------------------- |
-| local | `ng serve` :4200        | `./gradlew bootRun` :8080 | docker-compose postgres |
-| ci    | headless build + test   | gradle test + Testcontainers | ephemeral container |
-| prod  | static hosting (TBD)    | container image (TBD)    | managed Postgres (TBD)  |
+Developer-time tooling inside the Claude Code harness — not the app runtime.
 
-## 6. MCP Servers (developer-time)
+| MCP Server              | Purpose                                                                  |
+| ----------------------- | ------------------------------------------------------------------------ |
+| **Context7**            | Pull up-to-date library docs (Angular, Spring, Hibernate, PrimeNG, NgRx, Lucide) before writing code so we never ship legacy APIs. **Mandatory call before any non-trivial code generation.** |
+| Filesystem (built-in)   | Read/Edit/Write/Glob/Grep on project files                               |
+| Git (via Bash)          | Branching, commits, diffs                                                |
+| Claude in Chrome        | Drive the Angular dev server in a real browser; verify PWA install, service worker, offline behavior |
+| Claude Preview          | Lightweight headless preview during agent loops                          |
+| GitHub (via `gh`)       | Issues, PRs, releases, CI status                                         |
+| computer-use            | Native-app interactions (DB GUI) when no MCP exists                      |
+| mcp-registry            | Discover and add new MCPs as the project grows                           |
+| scheduled-tasks         | Nightly: dependency check, doc-drift check, license scan                 |
 
-These run inside the AI coding harness (Claude Code) and are part of the day-to-day development workflow, not the runtime.
-
-| MCP Server              | Purpose                                                       |
-| ----------------------- | ------------------------------------------------------------- |
-| `filesystem` / built-in | Read/write project files (Read, Edit, Write, Glob, Grep)      |
-| `git` (built-in Bash)   | Branching, commits, diffs, history                            |
-| `Claude in Chrome`      | Drive the Angular dev server in a real browser for UI checks  |
-| `Claude Preview`        | Lightweight headless preview for the SPA during agent loops   |
-| `computer-use`          | Native-app interactions (DB GUI, IDE) when no MCP exists      |
-| `mcp-registry`          | Discover and add new MCP servers as the project grows         |
-| `scheduled-tasks`       | Cron-style background work (nightly checks, doc refresh)      |
-
-Candidates to add once the stack is live (decision pending — see §9):
-
-- A **Postgres MCP** for schema introspection and safe read-only queries against the local DB.
-- A **GitHub MCP** for PR/issue automation beyond the `gh` CLI.
-- A **Playwright MCP** for deterministic e2e flows driven by the agent.
-
-## 7. Coding & Quality Standards
+## 7. Coding Standards
 
 - **Formatting:** Prettier (frontend), Spotless + google-java-format (backend). Enforced in CI.
-- **Linting:** ESLint with Angular plugin; Checkstyle/PMD optional, prefer compile-time strictness.
-- **Type safety:** TS `strict: true`; Java compiled with `-Xlint:all -Werror` where practical.
-- **Tests:** every backend endpoint has at least one Testcontainers-backed integration test; every frontend feature has a Vitest unit test and a Playwright smoke.
-- **Commits:** Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`). One logical change per commit.
-- **Branches:** trunk-based; short-lived feature branches merged via PR.
-- **ADRs:** any non-obvious architectural choice gets an entry in `docs/adr/NNNN-title.md`.
+- **Linting:** ESLint with Angular plugin (frontend); compile-time strictness preferred over runtime checks (backend).
+- **Type safety:** TS `strict: true`. Java compiled with `-parameters`, `-Xlint:all`.
+- **Lombok on JPA entities:** **NEVER `@Data` on entities.** Use `@Getter`, `@Setter`, `@NoArgsConstructor`, `@AllArgsConstructor`, `@Builder`. Override `equals`/`hashCode` manually using a stable business key or the JPA `@Id` only after persistence (see [ADR-0001](adr/0001-stack-and-build-tools.md)). `@ToString(exclude = ...)` to avoid LazyInitializationException and cycles.
+- **Hibernate:** prefer `LAZY` associations everywhere; use DTO projections for reads to avoid N+1; explicit `@Transactional` on services.
+- **Tests:** every backend endpoint has at least one Testcontainers-backed integration test; every frontend feature has Vitest unit + Playwright smoke; a11y assertions via `@axe-core/playwright`.
+- **Commits:** Conventional Commits. One logical change per commit.
+- **Branches:** trunk-based; short-lived `feat/*`, `fix/*`, `chore/*` merged via PR.
+- **ADRs:** every non-obvious decision goes to `docs/adr/`.
 
-## 8. Security Baseline
+## 8. PWA Standards
 
-- All backend endpoints default to authenticated; opt-in to public via explicit config.
-- Secrets never committed; `.env.example` documents required keys.
-- Dependencies scanned by GitHub Actions (Dependabot + `gradle dependencyCheck` / `npm audit`).
-- CSP, HSTS, secure cookies set on the API responses where applicable.
+The frontend ships as an installable PWA from day one.
 
-## 9. Open Decisions
+- **Manifest:** name, short_name, theme_color, background_color, icons (192/512/maskable), `display: standalone`, `start_url: /`.
+- **Service Worker:** generated by `@angular/pwa`; runtime caching via `ngsw-config.json` — `freshness` for `/api/`, `performance` for static assets.
+- **Offline:** read-only views (dog list, recent notes, today's schedule) work offline from cache; mutations queue and replay (later milestone, tracked in spec).
+- **Lighthouse PWA score** ≥ 90 enforced in CI.
+- **Accessibility:** WCAG 2.1 AA target; axe-core in CI.
+- **Install prompt:** custom UI surface, not the browser default.
 
-These should be confirmed before the corresponding code is written:
+## 9. Security Baseline
 
-1. **Auth provider** — self-issued JWT vs an external OIDC provider (Auth0, Keycloak, Cognito).
-2. **Hosting target** — container platform (Fly.io, Render, AWS ECS, GCP Cloud Run) drives the Dockerfile shape.
-3. **Database hosting in prod** — self-managed vs managed (RDS, Neon, Supabase).
-4. **Frontend state strategy** — pure Angular signals vs adding NgRx / Signal Store as complexity grows.
-5. **Domain scope** — what does "The-Dogs" actually do? (kennel mgmt? adoption? social? — drives schema).
+- All backend endpoints authenticated by default; explicit `@PreAuthorize("permitAll()")` to opt out.
+- JWT access tokens (15 min) + refresh tokens (7 days) — refresh stored as HttpOnly Secure SameSite=Strict cookie; access token in memory.
+- Passwords: BCrypt, cost 12+.
+- RBAC: `ROLE_TRAINER`, `ROLE_ADMIN` (extensible). Method-level `@PreAuthorize` on services, not just controllers.
+- Secrets via env vars; `.env.example` documents required keys.
+- CSP, HSTS, X-Content-Type-Options, X-Frame-Options on API responses.
+- Dependency scanning: Dependabot + OWASP `dependency-check-maven` + `npm audit` in CI.
+- License scanning: `license-checker` (npm) + `license-maven-plugin` to forbid copyleft (GPL/AGPL) drift.
 
-Track each as an ADR once decided.
+## 10. CI/CD (GitHub Actions)
+
+Workflows under `.github/workflows/`:
+
+| Workflow             | Trigger              | Steps                                                              |
+| -------------------- | -------------------- | ------------------------------------------------------------------ |
+| `ci-backend.yml`     | PR + push            | Maven verify (Spotless, tests w/ Testcontainers, OWASP scan)       |
+| `ci-frontend.yml`    | PR + push            | npm ci, lint, test (Vitest), build, Lighthouse + axe budgets       |
+| `ci-e2e.yml`         | PR (label) + nightly | Docker Compose full stack + Playwright                             |
+| `release.yml`        | tag `v*`             | Build container images, push to registry, draft GitHub Release     |
+| `dependency-scan.yml`| nightly              | OWASP, npm audit, license scan; opens issues on findings           |
+
+Branch protection on `master`: required checks = `ci-backend`, `ci-frontend`; squash-merge; linear history; signed commits encouraged.
+
+## 11. Environments
+
+| Env   | Frontend                | Backend                        | DB                      |
+| ----- | ----------------------- | ------------------------------ | ----------------------- |
+| local | `npm start` :4200       | `./mvnw spring-boot:run` :8080 | docker-compose postgres |
+| ci    | headless build + tests  | mvn verify + Testcontainers    | ephemeral container     |
+| prod  | static hosting (TBD)    | container image (TBD)          | managed Postgres (TBD)  |
+
+Hosting choice deferred (see ADR-0001 §Open). Container images and 12-factor config keep us portable.
+
+## 12. Architecture Decision Records
+
+See [docs/adr/](adr/). The current set:
+
+- [ADR-0001 — Stack and build tools](adr/0001-stack-and-build-tools.md)
+- [ADR-0002 — Domain scope](adr/0002-domain-scope.md)
+- [ADR-0003 — Auth: JWT + Spring Security + RBAC](adr/0003-auth-jwt-rbac.md)
+- [ADR-0004 — Frontend state: signals + NgRx Signal Store](adr/0004-frontend-state.md)
+- [ADR-0005 — UI component library: PrimeNG + lucide-angular](adr/0005-ui-component-library.md)
+- [ADR-0006 — PWA from day one](adr/0006-pwa.md)
+- [ADR-0007 — AI team composition (harness engineer model)](adr/0007-ai-team-composition.md)
+- [ADR-0008 — License](adr/0008-license.md) *(pending owner decision)*
