@@ -1,7 +1,8 @@
 # ADR-0008 — License
 
-- **Status:** **Pending owner decision**
+- **Status:** Accepted
 - **Date:** 2026-05-03
+- **Deciders:** Aleksander Torka (Owner)
 
 ## Context
 
@@ -45,9 +46,11 @@ If the **repository is private and never published**, a license file is technica
 
 **Option B — Proprietary "All Rights Reserved"** for an owner-retained commercial product. Lowest friction, no obligations, safest default, fully compatible with our chosen dependencies (Apache-2.0, MIT, ISC, BSD).
 
-## Action required
+## Decision
 
-Owner to confirm one of A / B / C / D. Default to B unless told otherwise; commit `LICENSE` file at that point.
+**Option B chosen.** Copyright holder: **Aleksander Torka**. `LICENSE` file committed at the repository root.
+
+A `THIRD-PARTY-NOTICES` file will be generated as part of the release pipeline (`release-manager` agent) to acknowledge the licenses of bundled OSS components per their requirements.
 
 ## Notes for the AI team
 

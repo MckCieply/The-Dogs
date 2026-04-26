@@ -136,7 +136,7 @@ Skills live under `.claude/skills/` and are versioned in git. Order roughly refl
 
 ## 6. Conventions the AI Team Follows
 
-- **Branching:** `feat/<short-slug>`, `fix/<short-slug>`, `chore/<short-slug>`. No long-lived branches besides `master`.
+- **Branching:** three long-lived branches (`dev` default, `staging`, `prod`); short-lived `feat/<slug>`, `fix/<slug>`, `chore/<slug>` from `dev`, PR back to `dev`. Promotion is `dev → staging → prod`. See [ADR-0009](adr/0009-branching-strategy.md).
 - **Commits:** Conventional Commits, imperative mood, body explains *why*. Each agent commits its own steps; no bundled monsters.
 - **PRs:** title matches commit style; body has Summary, Test Plan, links to spec/ADR, and the Context7-verification note.
 - **Code comments:** only when *why* is non-obvious. Identifiers carry the *what*.
@@ -167,9 +167,10 @@ Tracked here until each becomes an ADR. Cross-referenced in [ARCHITECTURE.md](AR
 | 5  | Frontend state          | ✅ Decided — signals + NgRx Signal Store ([ADR-0004](adr/0004-frontend-state.md)) |
 | 6  | UI component library    | ✅ Decided — PrimeNG + lucide-angular ([ADR-0005](adr/0005-ui-component-library.md)) |
 | 7  | PWA                     | ✅ Decided — Angular PWA from day one ([ADR-0006](adr/0006-pwa.md)) |
-| 8  | License                 | ❓ **Pending owner input** — see [ADR-0008](adr/0008-license.md) |
+| 8  | License                 | ✅ Decided — Proprietary, © Aleksander Torka ([ADR-0008](adr/0008-license.md)) |
 | 9  | Build tools             | ✅ Decided — Maven (backend), npm (frontend) ([ADR-0001](adr/0001-stack-and-build-tools.md)) |
 | 10 | CI provider             | ✅ Decided — GitHub Actions                                     |
+| 11 | Branching strategy      | ✅ Decided — `dev` / `staging` / `prod` ([ADR-0009](adr/0009-branching-strategy.md)) |
 
 ## 9. Getting Started (after scaffold skills run)
 

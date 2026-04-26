@@ -174,7 +174,7 @@ Developer-time tooling inside the Claude Code harness — not the app runtime.
 - **Hibernate:** prefer `LAZY` associations everywhere; use DTO projections for reads to avoid N+1; explicit `@Transactional` on services.
 - **Tests:** every backend endpoint has at least one Testcontainers-backed integration test; every frontend feature has Vitest unit + Playwright smoke; a11y assertions via `@axe-core/playwright`.
 - **Commits:** Conventional Commits. One logical change per commit.
-- **Branches:** trunk-based; short-lived `feat/*`, `fix/*`, `chore/*` merged via PR.
+- **Branches:** three long-lived (`dev` / `staging` / `prod`) + short-lived `feat/*`, `fix/*`, `chore/*` from `dev`. See [ADR-0009](adr/0009-branching-strategy.md).
 - **ADRs:** every non-obvious decision goes to `docs/adr/`.
 
 ## 8. PWA Standards
@@ -211,7 +211,15 @@ Workflows under `.github/workflows/`:
 | `release.yml`        | tag `v*`             | Build container images, push to registry, draft GitHub Release     |
 | `dependency-scan.yml`| nightly              | OWASP, npm audit, license scan; opens issues on findings           |
 
-Branch protection on `master`: required checks = `ci-backend`, `ci-frontend`; squash-merge; linear history; signed commits encouraged.
+Branch protection (per [ADR-0009](adr/0009-branching-strategy.md)):
+
+| Branch    | Required checks                                       | Merge type    |
+| --------- | ----------------------------------------------------- | ------------- |
+| `dev`     | `ci-backend`, `ci-frontend`                           | squash        |
+| `staging` | `ci-backend`, `ci-frontend`, `ci-e2e`                 | merge commit  |
+| `prod`    | `ci-backend`, `ci-frontend`, `ci-e2e`, manual approval | merge commit |
+
+Default branch: `dev`. Force-push and deletions blocked on all three. Signed commits encouraged.
 
 ## 11. Environments
 
@@ -234,4 +242,5 @@ See [docs/adr/](adr/). The current set:
 - [ADR-0005 — UI component library: PrimeNG + lucide-angular](adr/0005-ui-component-library.md)
 - [ADR-0006 — PWA from day one](adr/0006-pwa.md)
 - [ADR-0007 — AI team composition (harness engineer model)](adr/0007-ai-team-composition.md)
-- [ADR-0008 — License](adr/0008-license.md) *(pending owner decision)*
+- [ADR-0008 — License](adr/0008-license.md) — Proprietary, © Aleksander Torka
+- [ADR-0009 — Branching strategy](adr/0009-branching-strategy.md) — `dev` / `staging` / `prod`

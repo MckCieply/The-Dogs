@@ -25,4 +25,4 @@ Project bootstrap. No application code yet — `frontend/` and `backend/` are em
 
 ## License
 
-Pending — see [ADR-0008](docs/adr/0008-license.md).
+Proprietary — Copyright © 2026 Aleksander Torka. All rights reserved. See [LICENSE](LICENSE) and [ADR-0008](docs/adr/0008-license.md).
