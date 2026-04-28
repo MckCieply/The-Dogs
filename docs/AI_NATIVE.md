@@ -93,11 +93,9 @@ Skills live under `.claude/skills/` and are versioned in git. Order roughly refl
 
 ### Bootstrap
 
-- **`bootstrap-ai-team`** — writes the subagent definitions under `.claude/agents/` (one per role in §2.1) with proper tool allowlists.
-- **`scaffold-frontend`** — `ng new the-dogs --standalone --routing --style=scss --strict --ssr=false`, adds `@angular/pwa`, PrimeNG + theme, Tailwind 4, lucide-angular, NgRx Signal Store, Vitest, Playwright, ESLint, Prettier, axe.
-- **`scaffold-backend`** — Spring Boot 3.5 Maven project with Java 25, web/data-jpa/security/validation/actuator, Hibernate, Lombok, MapStruct, Flyway, Postgres driver, springdoc, Testcontainers, Spotless.
-- **`scaffold-feature`** — given a feature name, creates frontend module + backend module skeletons with passing skeleton tests and a Flyway migration stub.
-- **`scaffold-ci`** — generates `.github/workflows/` matching ARCHITECTURE.md §10.
+> **Note:** Skills are for **repeatable** workflows. One-shot bootstrap tasks (writing the agent definitions, scaffolding the Angular workspace, scaffolding the Spring Boot project, generating the initial CI workflows) are performed once by the matching role and then never repeated — they are **not** skills. They appear in the project plan as direct tasks for the relevant agent (`tech-lead` writes the agent definitions; `frontend-engineer` scaffolds the frontend; `backend-engineer` scaffolds the backend; `release-manager` writes the initial CI workflows).
+
+- **`scaffold-feature`** — given a feature name, creates frontend module + backend module skeletons with passing skeleton tests and a Flyway migration stub. (Repeatable per feature, hence a skill.)
 
 ### Daily development
 
