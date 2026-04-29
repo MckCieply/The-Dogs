@@ -1,6 +1,6 @@
 # ADR-0007 — AI Team Composition (Harness-Engineer Model)
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0010](0010-ai-team-consolidation.md)
 - **Date:** 2026-05-03
 - **Deciders:** Owner
 

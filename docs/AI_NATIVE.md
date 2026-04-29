@@ -20,20 +20,20 @@ The human is the **harness engineer**: they don't write production code, they or
 
 ### 2.1 The AI team
 
-| Agent (subagent_type) | Responsibility                                                                              | Primary tools / MCPs                                  |
-| --------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| `tech-lead`           | Reads the spec, drafts the plan, splits work into tickets, writes/updates the ADR if needed | Read, Grep, **Context7**, WebSearch                   |
-| `backend-engineer`    | Spring Boot + Hibernate + Lombok implementation; Flyway migration; service tests            | Read, Edit, Write, Bash (mvnw), **Context7**          |
-| `frontend-engineer`   | Angular feature module, NgRx Signal Store slice, PrimeNG components, Lucide icons           | Read, Edit, Write, Bash (npm), **Context7**           |
-| `db-engineer`         | Schema design, indexes, Flyway migrations, query plans                                      | Read, Write, Bash (psql/Testcontainers), **Context7** |
-| `qa-engineer`         | Vitest + Playwright + a11y (axe) + Testcontainers integration tests                         | Read, Edit, Write, Bash, **Claude in Chrome**         |
-| `ux-reviewer`         | Walks the running PWA in Chrome; checks Lighthouse, install flow, offline, accessibility    | **Claude in Chrome**, **Claude Preview**              |
-| `security-reviewer`   | Auth flows, RBAC enforcement, dependency/license scan, OWASP top-10 sanity check            | Read, Grep, Bash (npm audit, OWASP), **Context7**     |
-| `code-reviewer`       | Independent diff review against the project checklist                                       | Read, Grep, Bash (git diff)                           |
-| `docs-writer`         | Updates ARCHITECTURE.md, README, ADRs, OpenAPI snapshot, changelog                          | Read, Edit, Write                                     |
-| `release-manager`     | Tags, release notes, container build, deploy gating                                         | Bash (gh, mvn, docker)                                |
+8 roles per [ADR-0010](adr/0010-ai-team-consolidation.md) (which superseded the original 10-role split in [ADR-0007](adr/0007-ai-team-composition.md)).
 
-The human (harness engineer) plays Product Manager + final approver. Subagent definitions live in `.claude/agents/<role>.md` and are added by the `bootstrap-ai-team` skill.
+| Agent (subagent_type) | Responsibility                                                                                                                | Primary tools / MCPs                                  |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `tech-lead`           | Reads the spec, drafts the plan, splits work into tasks, writes/updates ADRs                                                  | Read, Grep, **Context7**, WebSearch                   |
+| `backend-engineer`    | Spring Boot + Hibernate + Lombok implementation **+ Flyway migrations + schema design**; service tests; `./mvnw verify` green | Read, Edit, Write, Bash (mvnw), **Context7**          |
+| `frontend-engineer`   | Angular feature module, NgRx Signal Store slice, PrimeNG components, Lucide icons; `npm run lint && npm test && npm run build` green | Read, Edit, Write, Bash (npm), **Context7**    |
+| `qa-engineer`         | Vitest + Playwright + a11y (axe) + Testcontainers tests **+ live PWA verification in Chrome** (Lighthouse, install flow, offline, accessibility) | Read, Edit, Write, Bash, **Claude in Chrome**, **Claude Preview** |
+| `security-reviewer`   | Auth flows, RBAC enforcement, dependency/license scan, OWASP Top-10 sanity check                                              | Read, Grep, Bash (npm audit, OWASP), WebSearch        |
+| `code-reviewer`       | Independent diff review against the project checklist (read-only)                                                             | Read, Grep, Bash (git diff)                           |
+| `docs-writer`         | Updates ARCHITECTURE.md, README, ADRs, OpenAPI snapshot, CHANGELOG                                                            | Read, Edit, Write                                     |
+| `release-manager`     | CI/CD scaffolding, branch protection, promotions, tags, container build, hotfixes                                             | Bash (gh, mvn, npm, docker)                           |
+
+The human (harness engineer) plays Product Manager + final approver. Subagent definitions live in `.claude/agents/<role>.md` and are added once at bootstrap by `tech-lead` (one-shot task — not a skill).
 
 ### 2.2 Per-feature workflow
 
@@ -42,18 +42,18 @@ The human (harness engineer) plays Product Manager + final approver. Subagent de
    │  0. Human writes a brief in docs/specs/<feature>.md              │
    │  1. tech-lead expands the spec; drafts ADR if architectural      │
    │     ─ MUST consult Context7 for current API/version guidance     │
-   │  2. db-engineer designs schema + Flyway migration                │
-   │  3. backend-engineer implements API: entity → repo → service →   │
-   │     controller → DTO + MapStruct mapper, with unit tests         │
-   │  4. qa-engineer adds Testcontainers integration tests            │
-   │  5. frontend-engineer implements feature module: Signal Store    │
+   │  2. backend-engineer implements API + schema + Flyway migration: │
+   │     entity → repo → service → controller → DTO + MapStruct       │
+   │     mapper, with unit tests; ./mvnw verify green                 │
+   │  3. qa-engineer adds Testcontainers integration tests            │
+   │  4. frontend-engineer implements feature module: Signal Store    │
    │     slice, PrimeNG-based components, routes, guards, tests       │
-   │  6. qa-engineer adds Playwright smoke + a11y assertions          │
-   │  7. ux-reviewer drives the PWA in Chrome; reports findings       │
-   │  8. security-reviewer audits auth, RBAC, deps, licenses          │
-   │  9. code-reviewer runs the project checklist on the diff         │
-   │ 10. docs-writer updates OpenAPI snapshot, ARCHITECTURE if needed │
-   │ 11. Human reviews PR; CI gates the merge                         │
+   │  5. qa-engineer adds Playwright smoke + a11y assertions, then    │
+   │     drives the running PWA in Chrome and reports findings        │
+   │  6. security-reviewer audits auth, RBAC, deps, licenses          │
+   │  7. code-reviewer runs the project checklist on the diff         │
+   │  8. docs-writer updates OpenAPI snapshot, ARCHITECTURE if needed │
+   │  9. Human reviews PR; CI gates the merge                         │
    └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -61,8 +61,8 @@ Each agent commits incrementally on the feature branch. The orchestrator (a top-
 
 ### 2.3 Parallelism rules
 
-- Steps 2 and 5 frontend-scaffold can run **in parallel** with step 3 once the API contract is locked in OpenAPI.
-- Reviews (7, 8, 9) run **in parallel** before docs (10).
+- Step 4 (frontend) can start as soon as the API contract is locked in OpenAPI by step 2 — they run **in parallel** from that point.
+- Reviews (6, 7) run **in parallel** before docs (8). Step 5's live verification runs serially after the frontend commit but in parallel with reviewer prep.
 - Anything touching the same files runs **serially** to avoid merge conflicts.
 
 ## 3. Roles: Human vs AI
@@ -71,8 +71,8 @@ Each agent commits incrementally on the feature branch. The orchestrator (a top-
 | --------------- | ------------------------------------------------- | -------------------------------------------------------- |
 | Direction       | Defines features, priorities, deadlines           | Suggests breakdowns, flags risks                         |
 | Design          | Approves architecture, picks between options      | `tech-lead` drafts ADRs; surfaces tradeoffs              |
-| Implementation  | Spot review                                       | `backend-engineer`, `frontend-engineer`, `db-engineer`   |
-| Verification    | Final UX sign-off                                 | `qa-engineer`, `ux-reviewer`, CI                         |
+| Implementation  | Spot review                                       | `backend-engineer` (incl. schema + migrations), `frontend-engineer` |
+| Verification    | Final UX sign-off                                 | `qa-engineer` (tests + live PWA verification), CI        |
 | Review          | Final approver on PR                              | `code-reviewer`, `security-reviewer`                     |
 | Docs            | Approves                                          | `docs-writer`                                            |
 | Ops             | Approves deploys, rotates secrets                 | `release-manager` prepares releases                      |
@@ -81,8 +81,8 @@ Each agent commits incrementally on the feature branch. The orchestrator (a top-
 
 (Canonical list in [ARCHITECTURE.md §6](ARCHITECTURE.md).) AI-native specifics:
 
-- **Context7** — *primary defense against legacy code*. Every implementer agent calls Context7 with the relevant library + version (e.g. `angular@21`, `spring-boot@3.5`, `primeng@18`, `ngrx-signals@18`, `hibernate@6`) before generating non-trivial code, then includes a short "Verified against Context7 on `<date>`" note in the PR body.
-- **Claude in Chrome** — `ux-reviewer`'s primary tool. Verifies install prompt, service worker registration, offline behavior, Lighthouse PWA score, axe results, and golden-path UX.
+- **Context7** — *primary defense against legacy code*. Every implementer agent calls Context7 with the relevant library + version (e.g. `angular@21`, `spring-boot@3.5`, `primeng@18`, `ngrx-signals@18`, `hibernate@6`, `postgresql@17`) before generating non-trivial code, then includes a short "Verified against Context7 on `<date>`" note in the PR body.
+- **Claude in Chrome** — `qa-engineer`'s tool for the live PWA verification pass. Verifies install prompt, service worker registration, offline behavior, Lighthouse PWA score, axe results, and golden-path UX.
 - **GitHub via `gh`** — `release-manager` and PR automation.
 - **scheduled-tasks** — nightly `deps-bump`, `security-scan`, `docs-drift-check`.
 - **mcp-registry** — when a new capability is needed, query the registry before writing custom code.
@@ -169,6 +169,8 @@ Tracked here until each becomes an ADR. Cross-referenced in [ARCHITECTURE.md](AR
 | 9  | Build tools             | ✅ Decided — Maven (backend), npm (frontend) ([ADR-0001](adr/0001-stack-and-build-tools.md)) |
 | 10 | CI provider             | ✅ Decided — GitHub Actions                                     |
 | 11 | Branching strategy      | ✅ Decided — `dev` / `staging` / `prod` ([ADR-0009](adr/0009-branching-strategy.md)) |
+| 12 | AI team composition     | ✅ Decided — 8 roles ([ADR-0010](adr/0010-ai-team-consolidation.md), supersedes [ADR-0007](adr/0007-ai-team-composition.md)) |
+| 13 | Design tooling / mockups | ⏳ Deferred — artifacts will live under [docs/design/](design/); tool & format TBD |
 
 ## 9. Getting Started (after scaffold skills run)
 

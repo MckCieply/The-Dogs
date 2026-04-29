@@ -241,6 +241,7 @@ See [docs/adr/](adr/). The current set:
 - [ADR-0004 — Frontend state: signals + NgRx Signal Store](adr/0004-frontend-state.md)
 - [ADR-0005 — UI component library: PrimeNG + lucide-angular](adr/0005-ui-component-library.md)
 - [ADR-0006 — PWA from day one](adr/0006-pwa.md)
-- [ADR-0007 — AI team composition (harness engineer model)](adr/0007-ai-team-composition.md)
+- [ADR-0007 — AI team composition (harness engineer model)](adr/0007-ai-team-composition.md) *(superseded by ADR-0010)*
 - [ADR-0008 — License](adr/0008-license.md) — Proprietary, © Aleksander Torka
 - [ADR-0009 — Branching strategy](adr/0009-branching-strategy.md) — `dev` / `staging` / `prod`
+- [ADR-0010 — AI team consolidation (8 roles)](adr/0010-ai-team-consolidation.md)
