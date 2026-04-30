@@ -151,19 +151,22 @@ Refined per feature spec under `docs/specs/`. RBAC: `ROLE_TRAINER` sees only own
 
 ## 6. MCP Servers
 
-Developer-time tooling inside the Claude Code harness — not the app runtime.
+Developer-time tooling inside the Claude Code harness — not the app runtime. Project-scope configuration lives in [`.mcp.json`](../.mcp.json) at the repo root.
 
-| MCP Server              | Purpose                                                                  |
-| ----------------------- | ------------------------------------------------------------------------ |
-| **Context7**            | Pull up-to-date library docs (Angular, Spring, Hibernate, PrimeNG, NgRx, Lucide) before writing code so we never ship legacy APIs. **Mandatory call before any non-trivial code generation.** |
-| Filesystem (built-in)   | Read/Edit/Write/Glob/Grep on project files                               |
-| Git (via Bash)          | Branching, commits, diffs                                                |
-| Claude in Chrome        | Drive the Angular dev server in a real browser; verify PWA install, service worker, offline behavior |
-| Claude Preview          | Lightweight headless preview during agent loops                          |
-| GitHub (via `gh`)       | Issues, PRs, releases, CI status                                         |
-| computer-use            | Native-app interactions (DB GUI) when no MCP exists                      |
-| mcp-registry            | Discover and add new MCPs as the project grows                           |
-| scheduled-tasks         | Nightly: dependency check, doc-drift check, license scan                 |
+| MCP Server              | Status         | Purpose                                                                  |
+| ----------------------- | -------------- | ------------------------------------------------------------------------ |
+| **Context7**            | ✅ Configured  | Pull up-to-date library docs (Angular, Spring, Hibernate, PrimeNG, NgRx, Lucide, Postgres, Flyway) before writing code so we never ship legacy APIs. **Mandatory call before any non-trivial code generation.** Configured at project scope in `.mcp.json`. |
+| Filesystem (built-in)   | ✅ Built-in    | Read/Edit/Write/Glob/Grep on project files                               |
+| Git (via Bash)          | ✅ Built-in    | Branching, commits, diffs                                                |
+| Claude in Chrome        | ✅ User-scope  | Drive the Angular dev server in a real browser; verify PWA install, service worker, offline behavior. Used by `qa-engineer` for live PWA verification. |
+| Claude Preview          | ✅ User-scope  | Lightweight headless preview during agent loops                          |
+| GitHub (via `gh`)       | ✅ Built-in    | Issues, PRs, releases, CI status via the `gh` CLI                        |
+| computer-use            | ✅ User-scope  | Native-app interactions (DB GUI) when no MCP exists                      |
+| mcp-registry            | ✅ User-scope  | Discover and add new MCPs as the project grows                           |
+| scheduled-tasks         | ✅ User-scope  | Nightly: dependency check, doc-drift check, license scan                 |
+| **PostgreSQL MCP**      | ⏳ Deferred    | Schema introspection and read-only queries against the local Postgres. **Trigger to add:** after `backend-engineer` scaffolds the backend and `docker compose up` brings Postgres online. Recommended package: `@modelcontextprotocol/server-postgres` (read-only) or `crystaldba/postgres-mcp` (richer). |
+| **GitHub MCP (server)** | ⏳ Deferred    | Richer PR/issue/branch-protection automation than the `gh` CLI. **Trigger to add:** when the GitHub repository exists and a personal access token is available. Recommended package: `github/github-mcp-server`. |
+| Sentry, Figma, etc.     | ⏳ Conditional | Add if/when the matching milestone arrives (deployed env, design tooling decision, etc.). See [AI_NATIVE.md §8](AI_NATIVE.md). |
 
 ## 7. Coding Standards
 
