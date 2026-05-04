@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: the-dogs-backend
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/thedogs}
+    username: ${DB_USERNAME:thedogs}
+    password: ${DB_PASSWORD:thedogs}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+
+server:
+  port: ${PORT:8080}
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-ttl-minutes: 15
+  refresh-token-ttl-days: 7
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    com.thedogs: INFO

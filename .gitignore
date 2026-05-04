@@ -38,6 +38,9 @@ frontend/yarn-error.log*
 frontend/pnpm-debug.log*
 frontend/.pnpm-store/
 
+# ====== Backend local overrides ======
+backend/src/main/resources/application-local.yml
+
 # ====== Backend (Spring / Maven / Gradle / Java) ======
 backend/target/
 backend/build/

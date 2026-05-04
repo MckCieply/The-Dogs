@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:tc:postgresql:17:///thedogs_test
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+  flyway:
+    enabled: true
+
+jwt:
+  secret: test-secret-key-that-is-at-least-256-bits-long-for-hmac-sha256-signing
+  access-token-ttl-minutes: 15
+  refresh-token-ttl-days: 7
+
+logging:
+  level:
+    com.thedogs: DEBUG
