@@ -47,4 +47,4 @@ The-Dogs is a greenfield enterprise PWA. We need to lock the language, framework
 
 ## Open
 
-- Hosting target and production DB management are deferred — see AI_NATIVE.md §8.
+- ~~Hosting target and production DB management are deferred~~ — resolved in [ADR-0011](0011-hosting-strategy.md): self-hosted laptop + Cloudflare Tunnel, with a clear migration path to a VPS.

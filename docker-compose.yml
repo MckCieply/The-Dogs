@@ -23,11 +23,27 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/thedogs
       DB_USERNAME: thedogs
       DB_PASSWORD: thedogs
-      JWT_SECRET: ${JWT_SECRET:change-me-in-production-use-env-var}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET env var is required}
     ports:
       - "8080:8080"
     depends_on:
       postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
         condition: service_healthy
 
 volumes:

@@ -1,0 +1,52 @@
+# Production overrides for docker-compose.yml
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# What this file does vs the base:
+#   - Adds restart: unless-stopped to all services
+#   - Removes external port exposure for postgres and backend (not reachable outside Docker network)
+#   - Enables log rotation to prevent disk fill
+#   - Activates the Spring 'prod' profile
+#   - Wires in cloudflared tunnel (reads token from CLOUDFLARE_TUNNEL_TOKEN env var)
+
+services:
+  postgres:
+    restart: unless-stopped
+    ports: !reset []          # remove the 5432 host binding — DB is internal only
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  backend:
+    restart: unless-stopped
+    ports: !reset []          # remove the 8080 host binding — nginx proxies internally
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  frontend:
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN is required in prod}
+    depends_on:
+      - frontend
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -61,12 +61,13 @@ Newest stable assumed at project bootstrap (May 2026). All version assumptions a
 | API docs             | springdoc-openapi 2.x | Generates OpenAPI 3.1                         |
 
 ### Infrastructure
-| Tool             | Version | Purpose                                              |
-| ---------------- | ------- | ---------------------------------------------------- |
-| Docker           | latest  | Local Postgres, app images                           |
-| Docker Compose   | v2      | One-command local stack                              |
-| PostgreSQL       | 17.x    | Primary datastore                                    |
-| GitHub Actions   | n/a     | CI: build, test, lint, security scan, container build |
+| Tool                | Version | Purpose                                                        |
+| ------------------- | ------- | -------------------------------------------------------------- |
+| Docker              | latest  | Local Postgres, app images                                     |
+| Docker Compose      | v2      | One-command local stack; `docker-compose.prod.yml` for prod overrides |
+| PostgreSQL          | 17.x    | Primary datastore                                              |
+| Cloudflare Tunnel   | latest  | Exposes local stack to internet — no port forwarding, free TLS, hides home IP |
+| GitHub Actions      | n/a     | CI: build, test, lint, security scan, container build          |
 
 ## 3. Repository Layout
 
@@ -226,13 +227,36 @@ Default branch: `dev`. Force-push and deletions blocked on all three. Signed com
 
 ## 11. Environments
 
-| Env   | Frontend                | Backend                        | DB                      |
-| ----- | ----------------------- | ------------------------------ | ----------------------- |
-| local | `npm start` :4200       | `./mvnw spring-boot:run` :8080 | docker-compose postgres |
-| ci    | headless build + tests  | mvn verify + Testcontainers    | ephemeral container     |
-| prod  | static hosting (TBD)    | container image (TBD)          | managed Postgres (TBD)  |
+| Env   | Frontend                | Backend                        | DB                        |
+| ----- | ----------------------- | ------------------------------ | ------------------------- |
+| local | `npm start` :4200       | `./mvnw spring-boot:run` :8080 | docker-compose postgres   |
+| ci    | headless build + tests  | mvn verify + Testcontainers    | ephemeral container       |
+| prod  | nginx container (port 80) | Spring Boot container        | postgres container (internal only) |
 
-Hosting choice deferred (see ADR-0001 §Open). Container images and 12-factor config keep us portable.
+### Production stack
+
+Production runs on a spare laptop using Docker Compose (see [ADR-0011](adr/0011-hosting-strategy.md)):
+
+```
+Internet → Cloudflare Tunnel (cloudflared) → nginx:80 → Angular PWA
+                                                       ↘ /api/ proxy → backend:8080 → postgres:5432
+```
+
+**Start prod:**
+```bash
+# Copy and fill .env (JWT_SECRET + CLOUDFLARE_TUNNEL_TOKEN)
+cp .env.example .env
+
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+**What `docker-compose.prod.yml` adds:**
+- `restart: unless-stopped` on all services
+- Postgres and backend ports removed from host (internal Docker network only)
+- `cloudflared` service that connects to Cloudflare's edge via the tunnel token
+- Log rotation on all services
+
+**Migration to a VPS** when needed: provision any Linux VPS, `git pull`, run the same command above. Point the Cloudflare Tunnel to the new host — no DNS changes required.
 
 ## 12. Architecture Decision Records
 
@@ -248,3 +272,4 @@ See [docs/adr/](adr/). The current set:
 - [ADR-0008 — License](adr/0008-license.md) — Proprietary, © Aleksander Torka
 - [ADR-0009 — Branching strategy](adr/0009-branching-strategy.md) — `dev` / `staging` / `prod`
 - [ADR-0010 — AI team consolidation (8 roles)](adr/0010-ai-team-consolidation.md)
+- [ADR-0011 — Hosting strategy: self-hosted laptop + Cloudflare Tunnel](adr/0011-hosting-strategy.md)
