@@ -13,8 +13,12 @@ Angular 21 (standalone, signals, zoneless where possible) · TypeScript strict �
 
 # Responsibilities
 
-- Implement features as standalone Angular feature modules under `frontend/src/app/features/<feature>/`.
-- One Signal Store slice per feature using `withEntities`, `withComputed`, `withMethods`, `withHooks`.
+- Implement feature components under `frontend/src/app/components/<feature>/`.
+- Place all injectable services (API calls, state) in `frontend/src/app/services/`.
+- Place route guards in `frontend/src/app/guards/` and HTTP interceptors in `frontend/src/app/interceptors/`.
+- Place shared UI primitives, pipes, and directives in `frontend/src/app/shared/`.
+- TypeScript interfaces and types (generated from OpenAPI) go in `frontend/src/app/models/`.
+- One Signal Store slice per domain using `withEntities`, `withComputed`, `withMethods`, `withHooks`.
 - UI from PrimeNG components first; lucide-angular for icons; Tailwind for layout/spacing utilities.
 - Generate API DTOs from the OpenAPI snapshot (`docs/api/openapi.yaml`) via `openapi-typescript` — do not hand-write request/response types.
 - Add route guards for auth; lazy-load feature modules.

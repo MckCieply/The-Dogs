@@ -95,13 +95,14 @@ The-Dogs/
 ├── frontend/                        # Angular workspace
 │   ├── src/
 │   │   ├── app/
-│   │   │   ├── core/                # auth, http interceptors, guards
-│   │   │   ├── shared/              # ui primitives, pipes, directives
-│   │   │   ├── features/
-│   │   │   │   ├── dogs/
-│   │   │   │   ├── notes/
-│   │   │   │   └── scheduler/
-│   │   │   └── layout/
+│   │   │   ├── components/          # page-level & feature components (dogs, notes, scheduler)
+│   │   │   ├── services/            # all injectable services incl. API resource services
+│   │   │   ├── shared/              # reusable ui primitives, pipes, directives
+│   │   │   ├── guards/              # route guards (auth, role)
+│   │   │   ├── interceptors/        # HTTP interceptors (JWT, error handling)
+│   │   │   ├── models/              # TS interfaces / types (generated from OpenAPI)
+│   │   │   └── layout/              # shell, navbar, sidebar components
+│   │   ├── assets/
 │   │   ├── manifest.webmanifest
 │   │   └── ngsw-config.json
 │   ├── angular.json
