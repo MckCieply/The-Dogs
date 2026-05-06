@@ -11,7 +11,7 @@ Owner asked for the "best" choice with no plan to revisit. The app is enterprise
 ## Decision
 
 - **Component-local state:** native Angular signals.
-- **Cross-component / feature state:** **NgRx Signal Store 18.x** with `withEntities`, `withComputed`, `withMethods`, `withHooks`. One store per feature slice (`dogs`, `notes`, `scheduler`, `auth`).
+- **Cross-component / feature state:** **NgRx Signal Store 21.x** with `withEntities`, `withComputed`, `withMethods`, `withHooks`. One store per feature slice (`dogs`, `notes`, `scheduler`, `auth`).
 - **Async / event streams:** RxJS at the boundary (HTTP, websockets), converted to signals via `toSignal` for consumption.
 - **No legacy NgRx Store / Effects / Actions.** Signal Store is the chosen path; classic NgRx is not added.
 
@@ -27,3 +27,7 @@ Owner asked for the "best" choice with no plan to revisit. The app is enterprise
 - **Pure signals only** — would require ad-hoc service singletons for shared state; harder to reason about as the app grows.
 - **Classic NgRx Store** — heavier, action/reducer ceremony, going against the framework's signal direction.
 - **Akita / Elf** — smaller communities; risk of abandonment.
+
+## Amendment — 2026-05-06
+
+During the Angular 21 PWA scaffold (commit c76586e), it was confirmed that `@ngrx/signals` aligns its major version with Angular's major version. `@ngrx/signals@18` declares `@angular/core: "^18"` as a peer dependency and is therefore incompatible with Angular 21. The installed version is `@ngrx/signals@21.1.0`. The version reference in the Decision section above has been updated from 18.x to 21.x accordingly. Going forward: NgRx Signals major version = Angular major version.

@@ -37,8 +37,8 @@ Newest stable assumed at project bootstrap (May 2026). All version assumptions a
 | Node.js          | 22 LTS   | Required for Angular CLI 21                                   |
 | Package mgr      | **npm 10+** | Lockfile committed (`package-lock.json`)                  |
 | RxJS             | 7.8+     | Used at boundaries; signals preferred for app state           |
-| State            | NgRx Signal Store 18.x | Lightweight, signal-native, `withEntities` for lists |
-| UI components    | **PrimeNG 18.x** (Apache-2.0) | Tables, forms, FullCalendar wrapper for scheduler |
+| State            | NgRx Signal Store 21.x | Lightweight, signal-native, `withEntities` for lists; tracks Angular major |
+| UI components    | **PrimeNG 21.x** (Apache-2.0) | Tables, forms, FullCalendar wrapper for scheduler; tracks Angular major |
 | Icons            | **lucide-angular** (ISC) | Primary icon set; PrimeIcons available as fallback |
 | Styling          | Tailwind CSS 4.x + PrimeNG theme tokens | Utility-first, JIT             |
 | PWA              | `@angular/pwa` schematic | Service Worker, manifest, install prompt, offline cache |

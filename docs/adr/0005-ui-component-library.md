@@ -10,7 +10,7 @@ The owner asked for open-source-licensed component and icon libraries, mentioned
 
 ## Decision
 
-- **Component library:** **PrimeNG 18.x** — Apache License 2.0.
+- **Component library:** **PrimeNG 21.x** — Apache License 2.0.
   - Comprehensive: data table, forms, dialogs, calendar/scheduler integration (FullCalendar wrapper), file upload, charts.
   - Themed via CSS variables; integrates with Tailwind 4 utilities.
   - Strong enterprise track record, active maintenance, broad Context7 documentation coverage.
@@ -33,3 +33,7 @@ The owner asked for open-source-licensed component and icon libraries, mentioned
 ## Forbidden
 
 - Adding any UI dependency under GPL/AGPL or "source-available, non-commercial" licenses. Enforced by `license-scan` skill.
+
+## Amendment — 2026-05-06
+
+During the Angular 21 PWA scaffold (commit c76586e), it was confirmed that PrimeNG aligns its major version with Angular's major version. `primeng@18` declares `@angular/core: "^17 || ^18"` as a peer dependency and is therefore incompatible with Angular 21. The installed version is `primeng@21.1.6`. The version reference in the Decision section above has been updated from 18.x to 21.x accordingly. Additionally, the theming approach changed in PrimeNG 21: themes are applied via `providePrimeNG` with a preset imported from `@primeuix/themes/aura` (CSS-in-JS), replacing the legacy `primeng/resources/...` CSS file imports. Going forward: PrimeNG major version = Angular major version.
