@@ -1,0 +1,30 @@
+/* Tailwind CSS 4 — uses CSS-native @import instead of directives */
+@import "tailwindcss";
+
+/* PrimeNG icons */
+@import "primeicons/primeicons.css";
+
+/*
+ * PrimeNG 21 theming is CSS-in-JS via providePrimeNG({ theme: { preset: Aura } })
+ * in app.config.ts — no legacy theme CSS files needed here.
+ */
+
+/* Tailwind utility layer for custom utilities */
+@layer utilities {
+  .text-primary {
+    color: var(--p-primary-500, #3b82f6);
+  }
+}
+
+/* Ensure inputs fill their container when styled by PrimeNG */
+.p-inputtext.w-full,
+.p-password.w-full .p-inputtext {
+  width: 100%;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-family, system-ui, sans-serif);
+}
