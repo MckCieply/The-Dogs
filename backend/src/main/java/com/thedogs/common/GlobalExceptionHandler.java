@@ -5,6 +5,7 @@ import java.net.URI;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -59,6 +60,15 @@ public class GlobalExceptionHandler {
     problem.setType(URI.create("https://thedogs.com/errors/conflict"));
     problem.setTitle("Conflict");
     problem.setDetail(ex.getMessage());
+    return problem;
+  }
+
+  @ExceptionHandler(BadCredentialsException.class)
+  public ProblemDetail handleBadCredentials(BadCredentialsException ex) {
+    ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
+    problem.setType(URI.create("https://thedogs.com/errors/unauthorized"));
+    problem.setTitle("Unauthorized");
+    problem.setDetail("Invalid email or password");
     return problem;
   }
 
