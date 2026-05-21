@@ -20,50 +20,92 @@ The human is the **harness engineer**: they don't write production code, they or
 
 ### 2.1 The AI team
 
-8 roles per [ADR-0010](adr/0010-ai-team-consolidation.md) (which superseded the original 10-role split in [ADR-0007](adr/0007-ai-team-composition.md)).
+Per [ADR-0012](adr/0012-automated-two-flow-pipeline.md) (which superseded the 8-role consolidation in [ADR-0010](adr/0010-ai-team-consolidation.md), itself superseding the original 10-role split in [ADR-0007](adr/0007-ai-team-composition.md)), the team is now organised into **two automated flows** plus one out-of-flow role.
 
-| Agent (subagent_type) | Responsibility                                                                                                                | Primary tools / MCPs                                  |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| `tech-lead`           | Reads the spec, drafts the plan, splits work into tasks, writes/updates ADRs                                                  | Read, Grep, **Context7**, WebSearch                   |
-| `backend-engineer`    | Spring Boot + Hibernate + Lombok implementation **+ Flyway migrations + schema design**; service tests; `./mvnw verify` green | Read, Edit, Write, Bash (mvnw), **Context7**          |
-| `frontend-engineer`   | Angular feature module, NgRx Signal Store slice, PrimeNG components, Lucide icons; `npm run lint && npm test && npm run build` green | Read, Edit, Write, Bash (npm), **Context7**    |
-| `qa-engineer`         | Vitest + Playwright + a11y (axe) + Testcontainers tests **+ live PWA verification in Chrome** (Lighthouse, install flow, offline, accessibility) | Read, Edit, Write, Bash, **Claude in Chrome**, **Claude Preview** |
-| `security-reviewer`   | Auth flows, RBAC enforcement, dependency/license scan, OWASP Top-10 sanity check                                              | Read, Grep, Bash (npm audit, OWASP), WebSearch        |
-| `code-reviewer`       | Independent diff review against the project checklist (read-only)                                                             | Read, Grep, Bash (git diff)                           |
-| `docs-writer`         | Updates ARCHITECTURE.md, README, ADRs, OpenAPI snapshot, CHANGELOG                                                            | Read, Edit, Write                                     |
-| `release-manager`     | CI/CD scaffolding, branch protection, promotions, tags, container build, hotfixes                                             | Bash (gh, mvn, npm, docker)                           |
+#### Flow A — runs for every feature in `features.json` (sequential)
 
-The human (harness engineer) plays Product Manager + final approver. Subagent definitions live in `.claude/agents/<role>.md` and are added once at bootstrap by `tech-lead` (one-shot task — not a skill).
+| Agent (subagent_type) | Responsibility | Primary tools / MCPs |
+| --------------------- | -------------- | -------------------- |
+| `explorer`    | Reads the spec, gathers context (read-only), calls Context7. Also receives `git log --oneline` since last `flow-b-N` tag as docs-drift awareness. | Read, Grep, Glob, **Context7** |
+| `implementer` | Backend + frontend implementation in one context (Spring Boot + Flyway + Lombok + MapStruct + Hibernate + Angular + NgRx Signal Store + PrimeNG + lucide-angular). Runs tests, repairs failures, commits WIP. | Read, Edit, Write, Bash (mvnw, npm, ng, git add/commit/diff), **Context7** |
+| `test-writer` | Vitest + Testcontainers + Playwright tests + axe-core assertions. Does not run tests — `implementer` does. | Read, Edit, Write, Glob, Grep, **Context7** |
+| `reviewer`    | Baseline code-and-security checklist on the feature diff: types, dead code, Lombok rules, auth + `@PreAuthorize` presence, no inline secrets, Context7 note, Conventional Commits. | Read, Grep, Glob, Bash (git diff, git log), **Context7** |
 
-### 2.2 Per-feature workflow
+#### Flow B — runs Mon/Wed/Fri 02:00 (sequential)
+
+| Agent (subagent_type) | Responsibility | Primary tools / MCPs |
+| --------------------- | -------------- | -------------------- |
+| `security-reviewer` | Adversarial audit of diff `dev` vs last `flow-b-N` tag; opens GitHub issues with `kind:security` + `severity:*` labels | Read, Grep, Bash (npm audit, OWASP, gh issue), WebSearch |
+| `pwa-auditor`       | Live PWA verification against running `dev` stack (manifest + SW + offline + Lighthouse + axe + install prompt); opens issues with `kind:pwa` + `severity:*` | Read, Bash (docker compose, gh issue), **Claude in Chrome**, **Claude Preview** |
+| `docs-writer`       | Updates `docs/ARCHITECTURE.md`, `docs/AI_NATIVE.md`, `CHANGELOG.md`; proposes ADRs; severity-tagged docs-drift report in PR body; opens issues only for `severity:critical`/`high` drift | Read, Edit, Write, Bash (gh issue) |
+
+#### Out of both flows
+
+| Agent (subagent_type) | Responsibility | Primary tools / MCPs |
+| --------------------- | -------------- | -------------------- |
+| `release-manager` | Triggered **manually** for promotions `dev → staging → prod` and hotfixes; CI/CD scaffolding, branch protection, tags, container builds. Never invoked by Flow A or Flow B. | Bash (gh, mvn, npm, docker) |
+
+The human (harness engineer) plays Product Manager + final approver: writes specs, approves Flow B issues with `status:approved` label, reviews Flow B PRs, triggers `release-manager` for promotion. Subagent definitions live in `.claude/agents/<role>.md`.
+
+### 2.2 Two-flow pipeline
+
+Under [ADR-0012](adr/0012-automated-two-flow-pipeline.md) the team runs **fully automated**: `run-features.ps1` drains `features.json` for Flow A; Windows Task Scheduler triggers `run-flow-b.ps1` Mon/Wed/Fri at 02:00 for Flow B. The human never sees an individual feature PR — only the Flow B aggregate PR and any `status:approved` issues to triage.
 
 ```
-   ┌──────────────────────────────────────────────────────────────────┐
-   │  0. Human writes a brief in docs/specs/<feature>.md              │
-   │  1. tech-lead expands the spec; drafts ADR if architectural      │
-   │     ─ MUST consult Context7 for current API/version guidance     │
-   │  2. backend-engineer implements API + schema + Flyway migration: │
-   │     entity → repo → service → controller → DTO + MapStruct       │
-   │     mapper, with unit tests; ./mvnw verify green                 │
-   │  3. qa-engineer adds Testcontainers integration tests            │
-   │  4. frontend-engineer implements feature module: Signal Store    │
-   │     slice, PrimeNG-based components, routes, guards, tests       │
-   │  5. qa-engineer adds Playwright smoke + a11y assertions, then    │
-   │     drives the running PWA in Chrome and reports findings        │
-   │  6. security-reviewer audits auth, RBAC, deps, licenses          │
-   │  7. code-reviewer runs the project checklist on the diff         │
-   │  8. docs-writer updates OpenAPI snapshot, ARCHITECTURE if needed │
-   │  9. Human reviews PR; CI gates the merge                         │
-   └──────────────────────────────────────────────────────────────────┘
+┌─ Flow A — per feature (run-features.ps1) ─────────────────────────────┐
+│  0. Human writes brief in docs/specs/<feature>.md (or auto-promoted   │
+│     from Flow B issue via promote-issues.ps1)                         │
+│  1. explorer    — reads spec, gathers context, Context7, receives     │
+│                   git log since last flow-b-N as drift awareness      │
+│  2. implementer — backend + frontend in one context; entity → repo →  │
+│                   service → controller → DTO/mapper + Flyway          │
+│                   migration; Signal Store slice + PrimeNG components; │
+│                   runs and repairs tests; WIP commits                 │
+│  3. test-writer — Vitest + Testcontainers + Playwright + axe-core     │
+│  4. reviewer    — baseline code + security checklist on diff          │
+│       ├─ ok      → orchestrator squashes WIP, opens PR to dev,        │
+│       │            enables auto-merge (--squash --auto), waits for    │
+│       │            CI green per ADR-0009 branch protection, then      │
+│       │            dequeues next feature                              │
+│       ├─ notes   → back to implementer (max 2 rounds)                 │
+│       └─ rejected after 2 rounds → status: needs_review, queue        │
+│                                    continues with next feature        │
+└───────────────────────────────────────────────────────────────────────┘
+
+┌─ Flow B — Mon/Wed/Fri 02:00 (run-flow-b.ps1) ─────────────────────────┐
+│  Input: diff `dev` vs last `flow-b-N` tag                             │
+│  1. security-reviewer — adversarial pass; opens issues kind:security  │
+│  2. pwa-auditor       — docker compose up, Lighthouse + axe + manifest│
+│                         + SW + offline + install prompt; opens issues │
+│                         kind:pwa                                      │
+│  3. docs-writer       — updates ARCHITECTURE.md / AI_NATIVE.md /      │
+│                         CHANGELOG; severity-tagged docs-drift report  │
+│                         in PR body; opens issues only for severity    │
+│                         critical/high                                 │
+│  Output: PR chore/flow-b-<YYYY-MM-DD> to dev + tag flow-b-<N> on the  │
+│          dev tip the run started from                                 │
+└───────────────────────────────────────────────────────────────────────┘
 ```
 
-Each agent commits incrementally on the feature branch. The orchestrator (a top-level skill, `feature-deliver`) sequences the team and aggregates reports.
+**Throughput caps (Flow A, per ADR-0012):**
 
-### 2.3 Parallelism rules
+- Hard daily cap: **3 features / calendar day** (Europe/Warsaw). Reaching the cap pauses Flow A until next local midnight.
+- Defensive per-window cap: **10 features** between Flow B runs. Hitting this triggers Flow B ad-hoc (adaptive trigger).
 
-- Step 4 (frontend) can start as soon as the API contract is locked in OpenAPI by step 2 — they run **in parallel** from that point.
-- Reviews (6, 7) run **in parallel** before docs (8). Step 5's live verification runs serially after the frontend commit but in parallel with reviewer prep.
-- Anything touching the same files runs **serially** to avoid merge conflicts.
+**Issue lifecycle (Flow B → features.json, per ADR-0012):**
+
+```
+Flow B opens issue → human adds status:approved → promote-issues.ps1
+moves it to features.json with priority:asap and source_issue:<n> →
+Flow A delivers, PR body has "Closes #<n>" → on merge GitHub auto-closes
+the issue, orchestrator first adds status:waiting-review for audit trail.
+```
+
+### 2.3 Coordination and concurrency
+
+Under automation everything runs **sequentially**. There is no parallel work between sub-agents within a flow, and the two flows hold a file lock (`orchestrator.lock`) so they never run concurrently. The parallelism rules of earlier ADRs were premised on human-in-the-loop latency mattering — under full automation latency is no longer valued, and sequential execution removes coordination complexity.
+
+If both flows would run at once (e.g., a Flow B trigger lands while Flow A is mid-feature), the second to start waits on the lock. `run-features.ps1` proactively pauses 02:00–04:00 on Flow B days to give Flow B a clean window.
 
 ## 3. Roles: Human vs AI
 
@@ -169,8 +211,9 @@ Tracked here until each becomes an ADR. Cross-referenced in [ARCHITECTURE.md](AR
 | 9  | Build tools             | ✅ Decided — Maven (backend), npm (frontend) ([ADR-0001](adr/0001-stack-and-build-tools.md)) |
 | 10 | CI provider             | ✅ Decided — GitHub Actions                                     |
 | 11 | Branching strategy      | ✅ Decided — `dev` / `staging` / `prod` ([ADR-0009](adr/0009-branching-strategy.md)) |
-| 12 | AI team composition     | ✅ Decided — 8 roles ([ADR-0010](adr/0010-ai-team-consolidation.md), supersedes [ADR-0007](adr/0007-ai-team-composition.md)) |
+| 12 | AI team composition     | ✅ Decided — Flow A (4 roles) + Flow B (3 roles) + manual `release-manager` ([ADR-0012](adr/0012-automated-two-flow-pipeline.md), supersedes [ADR-0010](adr/0010-ai-team-consolidation.md) which superseded [ADR-0007](adr/0007-ai-team-composition.md)) |
 | 13 | Design tooling / mockups | ⏳ Deferred — artifacts will live under [docs/design/](design/); tool & format TBD |
+| 14 | Automation pipeline     | ✅ Decided — two-flow with auto-merge, throughput caps, issue lifecycle ([ADR-0012](adr/0012-automated-two-flow-pipeline.md)) |
 
 ## 9. Getting Started (after scaffold skills run)
 

@@ -1,6 +1,6 @@
 # ADR-0010 — AI Team Consolidation (8 Roles)
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0012](0012-automated-two-flow-pipeline.md)
 - **Date:** 2026-05-03
 - **Deciders:** Aleksander Torka (Owner)
 - **Supersedes:** [ADR-0007](0007-ai-team-composition.md)

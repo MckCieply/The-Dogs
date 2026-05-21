@@ -272,5 +272,6 @@ See [docs/adr/](adr/). The current set:
 - [ADR-0007 — AI team composition (harness engineer model)](adr/0007-ai-team-composition.md) *(superseded by ADR-0010)*
 - [ADR-0008 — License](adr/0008-license.md) — Proprietary, © Aleksander Torka
 - [ADR-0009 — Branching strategy](adr/0009-branching-strategy.md) — `dev` / `staging` / `prod`
-- [ADR-0010 — AI team consolidation (8 roles)](adr/0010-ai-team-consolidation.md)
+- [ADR-0010 — AI team consolidation (8 roles)](adr/0010-ai-team-consolidation.md) *(superseded by ADR-0012)*
 - [ADR-0011 — Hosting strategy: self-hosted laptop + Cloudflare Tunnel](adr/0011-hosting-strategy.md)
+- [ADR-0012 — Automated two-flow pipeline (Flow A per feature, Flow B 3×/week)](adr/0012-automated-two-flow-pipeline.md)
