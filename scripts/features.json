@@ -1,0 +1,36 @@
+{
+  "$schema_comment": "Queue for Flow A (ADR-0012). Orchestrator drains entries top-to-bottom. Atomic IO via .tmp + Move-Item. Each entry tracks attempts, last_session_id, and last_cost_usd for telemetry.",
+  "next_id": 1,
+  "features": [
+    {
+      "id": "F001",
+      "slug": "example-feature-slug",
+      "title": "Example: Dogs CRUD",
+      "brief_path": "docs/specs/dogs-crud.md",
+      "status": "queued",
+      "priority": "normal",
+      "source_issue": null,
+      "attempts": 0,
+      "last_session_id": null,
+      "last_cost_usd": null,
+      "last_verdict": null,
+      "last_error": null,
+      "created_at": "2026-05-22T00:00:00+02:00",
+      "started_at": null,
+      "completed_at": null,
+      "merged_pr": null
+    }
+  ],
+  "$status_values": [
+    "queued",
+    "in_progress",
+    "done",
+    "failed",
+    "needs_review"
+  ],
+  "$priority_values": [
+    "asap",
+    "normal",
+    "later"
+  ]
+}
