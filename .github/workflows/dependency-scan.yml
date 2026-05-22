@@ -1,0 +1,159 @@
+name: dependency-scan
+
+on:
+  schedule:
+    # Nightly at 04:30 UTC = 05:30/06:30 Europe/Warsaw.
+    # After Flow B (02:00) and after ci-e2e nightly (03:30 UTC).
+    - cron: '30 4 * * *'
+  workflow_dispatch:
+
+# Nightly OWASP + npm audit + license scan. Opens GitHub issues for any
+# finding rated High/Critical. License scan fails the run on GPL/AGPL.
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  backend-scan:
+    name: Backend OWASP + license
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Cache OWASP NVD database
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: owasp-nvd-${{ runner.os }}-${{ github.run_number }}
+          restore-keys: |
+            owasp-nvd-${{ runner.os }}-
+
+      - name: OWASP dependency-check
+        working-directory: backend
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          ./mvnw -B org.owasp:dependency-check-maven:check \
+            -DnvdApiKey="${NVD_API_KEY:-}" \
+            -DfailBuildOnCVSS=8 \
+            -DskipTestScope=true \
+            -Dformats=HTML,JSON
+
+      - name: License scan (Maven)
+        working-directory: backend
+        run: |
+          ./mvnw -B license:add-third-party
+          # Fail on GPL/AGPL anywhere in the dependency tree per ADR-0008.
+          if grep -Ei '(^| )(A?GPL|GNU General Public License|Affero)' target/generated-sources/license/THIRD-PARTY.txt; then
+            echo "::error::GPL/AGPL dependency detected — see THIRD-PARTY.txt"
+            exit 1
+          fi
+
+      - name: Upload backend reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-security-reports
+          path: |
+            backend/target/dependency-check-report.html
+            backend/target/dependency-check-report.json
+            backend/target/generated-sources/license/THIRD-PARTY.txt
+          retention-days: 30
+
+      - name: Open issue on backend findings
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --title "dependency-scan: backend findings $(date -I)" \
+            --label "kind:security,severity:high,status:triage" \
+            --body "Nightly dependency scan failed on backend.
+
+          Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          Likely cause: OWASP CVSS ≥ 8 dependency or GPL/AGPL license drift.
+          See workflow logs and uploaded artefacts."
+
+  frontend-scan:
+    name: Frontend npm audit + license
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: npm audit (production only)
+        working-directory: frontend
+        run: |
+          # Fail on high/critical. Moderate/low go in the report but don't block.
+          npm audit --omit=dev --audit-level=high
+
+      - name: License scan
+        working-directory: frontend
+        run: |
+          npx --yes license-checker --production --excludePrivatePackages \
+            --json > license-report.json
+          # Fail on GPL/AGPL anywhere in the production tree per ADR-0008.
+          if node -e "
+            const r = require('./license-report.json');
+            const bad = Object.entries(r).filter(([pkg, info]) => {
+              const lic = (info.licenses || '').toString();
+              return /A?GPL|Affero/i.test(lic);
+            });
+            if (bad.length) {
+              console.error('GPL/AGPL packages detected:');
+              for (const [pkg, info] of bad) console.error('  -', pkg, info.licenses);
+              process.exit(1);
+            }
+          "; then
+            echo "License scan clean"
+          else
+            exit 1
+          fi
+
+      - name: Upload frontend reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-security-reports
+          path: frontend/license-report.json
+          retention-days: 30
+
+      - name: Open issue on frontend findings
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --title "dependency-scan: frontend findings $(date -I)" \
+            --label "kind:security,severity:high,status:triage" \
+            --body "Nightly dependency scan failed on frontend.
+
+          Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          Likely cause: npm audit High/Critical advisory or GPL/AGPL license drift.
+          See workflow logs and uploaded artefacts."

@@ -1,0 +1,127 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (must already exist)'
+        required: true
+
+# Builds container images for backend and frontend, pushes to GHCR,
+# drafts a GitHub Release. Triggered on tag push (release-manager owns
+# tags per ADR-0009: tags are only created on prod).
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build-and-publish:
+    name: Build images and publish release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # need full history for release notes
+
+      - name: Resolve release tag
+        id: tag
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Build backend image
+        working-directory: backend
+        env:
+          IMAGE_REF: ghcr.io/${{ github.repository_owner }}/the-dogs-backend:${{ steps.tag.outputs.tag }}
+        run: |
+          ./mvnw -B -DskipTests package spring-boot:build-image \
+            -Dspring-boot.build-image.imageName="$IMAGE_REF"
+          docker tag "$IMAGE_REF" "ghcr.io/${{ github.repository_owner }}/the-dogs-backend:latest"
+          docker push "$IMAGE_REF"
+          docker push "ghcr.io/${{ github.repository_owner }}/the-dogs-backend:latest"
+
+      - name: Set up Node.js 22 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend bundle
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build -- --configuration=production
+
+      - name: Build + push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: frontend
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/the-dogs-frontend:${{ steps.tag.outputs.tag }}
+            ghcr.io/${{ github.repository_owner }}/the-dogs-frontend:latest
+
+      - name: Generate release notes from Conventional Commits
+        id: notes
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 "${{ steps.tag.outputs.tag }}^" 2>/dev/null || echo "")
+          if [[ -n "$PREV_TAG" ]]; then
+            RANGE="$PREV_TAG..${{ steps.tag.outputs.tag }}"
+          else
+            RANGE="${{ steps.tag.outputs.tag }}"
+          fi
+          {
+            echo "notes<<EOF"
+            echo "## Changes in ${{ steps.tag.outputs.tag }}"
+            echo ""
+            echo "### Features"
+            git log "$RANGE" --grep='^feat' --pretty='- %s (%h)' || true
+            echo ""
+            echo "### Fixes"
+            git log "$RANGE" --grep='^fix' --pretty='- %s (%h)' || true
+            echo ""
+            echo "### Other"
+            git log "$RANGE" --grep='^chore\|^refactor\|^docs' --pretty='- %s (%h)' || true
+            echo ""
+            echo "### Container images"
+            echo "- backend: \`ghcr.io/${{ github.repository_owner }}/the-dogs-backend:${{ steps.tag.outputs.tag }}\`"
+            echo "- frontend: \`ghcr.io/${{ github.repository_owner }}/the-dogs-frontend:${{ steps.tag.outputs.tag }}\`"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Draft GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
+          body: ${{ steps.notes.outputs.notes }}
+          draft: true
+          prerelease: false

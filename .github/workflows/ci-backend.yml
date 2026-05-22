@@ -1,0 +1,131 @@
+name: ci-backend
+
+on:
+  push:
+    branches: [dev, staging, prod]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci-backend.yml'
+  pull_request:
+    branches: [dev, staging, prod]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci-backend.yml'
+
+# Required by ADR-0009 branch protection on dev/staging/prod.
+# Required by ADR-0012 Flow A auto-merge gate.
+
+concurrency:
+  group: ci-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Maven verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      # Testcontainers boots its own Postgres; this service is just here as
+      # a fallback for tests that bypass Testcontainers.
+      docker:
+        image: docker:dind
+        options: --privileged
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Verify Spotless formatting
+        working-directory: backend
+        run: ./mvnw -B spotless:check
+
+      - name: Run Maven verify (compile + tests + Testcontainers integration)
+        working-directory: backend
+        run: ./mvnw -B verify
+
+      - name: Generate OpenAPI snapshot from springdoc
+        working-directory: backend
+        run: |
+          ./mvnw -B spring-boot:start
+          mkdir -p ../docs/api
+          curl -fsS http://localhost:8080/v3/api-docs.yaml -o ../docs/api/openapi.yaml || \
+            echo "::warning::springdoc OpenAPI fetch failed — skipping snapshot update"
+          ./mvnw -B spring-boot:stop
+        continue-on-error: true
+
+      - name: Commit OpenAPI snapshot if changed (push events only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        run: |
+          if [[ -n "$(git status --porcelain docs/api/openapi.yaml)" ]]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add docs/api/openapi.yaml
+            git commit -m "docs(api): refresh openapi snapshot [skip ci]"
+            git push origin HEAD:dev
+          fi
+        continue-on-error: true
+
+      - name: Upload backend test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: |
+            backend/target/surefire-reports/
+            backend/target/failsafe-reports/
+            backend/target/site/jacoco/
+          retention-days: 7
+
+  owasp-dependency-check:
+    name: OWASP dependency-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: build-and-test
+    # Skip on PRs from forks (NVD API key unavailable) and on draft PRs.
+    if: github.event_name == 'push' || (github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft)
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Cache OWASP NVD database
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: owasp-nvd-${{ runner.os }}-${{ github.run_number }}
+          restore-keys: |
+            owasp-nvd-${{ runner.os }}-
+
+      - name: Run OWASP dependency-check
+        working-directory: backend
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          ./mvnw -B org.owasp:dependency-check-maven:check \
+            -DnvdApiKey="${NVD_API_KEY:-}" \
+            -DfailBuildOnCVSS=8 \
+            -DskipTestScope=true
+        continue-on-error: ${{ secrets.NVD_API_KEY == '' }}
+
+      - name: Upload OWASP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-report
+          path: backend/target/dependency-check-report.html
+          retention-days: 14
