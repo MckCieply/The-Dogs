@@ -215,6 +215,8 @@ Tracked here until each becomes an ADR. Cross-referenced in [ARCHITECTURE.md](AR
 | 13 | Design tooling / mockups | ⏳ Deferred — artifacts will live under [docs/design/](design/); tool & format TBD |
 | 14 | Automation pipeline     | ✅ Decided — two-flow with auto-merge, throughput caps, issue lifecycle ([ADR-0012](adr/0012-automated-two-flow-pipeline.md)) |
 | 15 | OWASP NVD enforcement   | ⏳ Wanted — `ci-backend.yml` + `dependency-scan.yml` are wired for OWASP `dependency-check-maven`, but the `NVD_API_KEY` repo secret is not yet provisioned. Until then, OWASP runs in best-effort mode (`continue-on-error`); CVE finding accuracy degrades under NVD throttling. **Action:** request a free key at <https://nvd.nist.gov/developers/request-an-api-key> and `gh secret set NVD_API_KEY --body <key>`. |
+| 16 | Feature ID schema       | ✅ Decided 2026-05-22 — **dual scheme.** Issue-promoted features stay on `F-NNN` (auto-incremented via `scripts/promote-issues.ps1` from `next_id`). Spec-PR-promoted features use **thematic namespaced IDs**: `AUTH-NN`, `I18N-NN`, `DOGS-NN`, `NOTES-NN`, `SCHED-NN`, etc. The two pools coexist in `features.json`; the orchestrator treats `id` as an opaque string. Rationale: when reading the queue, namespaced IDs reveal the feature's domain at a glance; `F-NNN` retains a stable lineage for anything that originated as a labelled GitHub issue. **Convention:** namespace prefix matches the relevant ADR or domain area, two-digit zero-padded counter, hyphen separator. |
+| 17 | Password reset without SMTP | ✅ Decided — admin-retrieved token flow ([ADR-0013](adr/0013-password-reset-without-smtp.md)). Migrates to email delivery without API contract changes when SMTP is provisioned. |
 
 ## 9. Getting Started (after scaffold skills run)
 
