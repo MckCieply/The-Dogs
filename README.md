@@ -10,14 +10,17 @@ MVP modules: **Dogs** (CRUD), **Notes** per dog (CRUD), **Scheduler** (client me
 The-Dogs/
 ├── docs/        # Architecture, ADRs, AI-native workflow, feature specs
 ├── frontend/    # Angular 21 PWA (npm)
-└── backend/     # Spring Boot 3.5 (Maven, Hibernate, Lombok, PostgreSQL)
+├── backend/     # Spring Boot 3.5 (Maven, Hibernate, Lombok, PostgreSQL)
+└── scripts/     # PowerShell orchestrator (Flow A + Flow B per ADR-0012)
 ```
 
 ## Documentation
 
+- [**Operator setup guide**](docs/SETUP.md) — run the automation pipeline and the prod stack on the production laptop
 - [Architecture](docs/ARCHITECTURE.md) — stack, versions, MCP servers, repo layout, security, CI/CD
 - [AI-Native Development Guide](docs/AI_NATIVE.md) — agent team, per-feature workflow, skills
 - [Architecture Decision Records](docs/adr/) — every non-obvious decision
+- [`scripts/README.md`](scripts/README.md) — orchestrator script reference
 
 ## Status
 
