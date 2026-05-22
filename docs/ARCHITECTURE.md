@@ -201,7 +201,7 @@ The frontend ships as an installable PWA from day one.
 - RBAC: `ROLE_TRAINER`, `ROLE_ADMIN` (extensible). Method-level `@PreAuthorize` on services, not just controllers.
 - Secrets via env vars; `.env.example` documents required keys.
 - CSP, HSTS, X-Content-Type-Options, X-Frame-Options on API responses.
-- Dependency scanning: Dependabot + OWASP `dependency-check-maven` + `npm audit` in CI.
+- Dependency scanning: Dependabot + OWASP `dependency-check-maven` + `npm audit` in CI. **OWASP runs in best-effort mode (`continue-on-error`) until the `NVD_API_KEY` repo secret is added** — without the key the NVD downloads throttle hard and finding accuracy degrades. Tracked as open decision #15 in [AI_NATIVE.md §8](AI_NATIVE.md).
 - License scanning: `license-checker` (npm) + `license-maven-plugin` to forbid copyleft (GPL/AGPL) drift.
 
 ## 10. CI/CD (GitHub Actions)
