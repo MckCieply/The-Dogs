@@ -3,17 +3,13 @@ name: ci-frontend
 on:
   push:
     branches: [dev, staging, prod]
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/ci-frontend.yml'
   pull_request:
     branches: [dev, staging, prod]
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/ci-frontend.yml'
 
 # Required by ADR-0009 branch protection on dev/staging/prod.
 # Required by ADR-0012 Flow A auto-merge gate.
+#
+# Path filters intentionally removed — see explanation in ci-backend.yml.
 
 concurrency:
   group: ci-frontend-${{ github.ref }}
