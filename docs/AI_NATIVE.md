@@ -214,6 +214,7 @@ Tracked here until each becomes an ADR. Cross-referenced in [ARCHITECTURE.md](AR
 | 12 | AI team composition     | ✅ Decided — Flow A (4 roles) + Flow B (3 roles) + manual `release-manager` ([ADR-0012](adr/0012-automated-two-flow-pipeline.md), supersedes [ADR-0010](adr/0010-ai-team-consolidation.md) which superseded [ADR-0007](adr/0007-ai-team-composition.md)) |
 | 13 | Design tooling / mockups | ⏳ Deferred — artifacts will live under [docs/design/](design/); tool & format TBD |
 | 14 | Automation pipeline     | ✅ Decided — two-flow with auto-merge, throughput caps, issue lifecycle ([ADR-0012](adr/0012-automated-two-flow-pipeline.md)) |
+| 15 | OWASP NVD enforcement   | ⏳ Wanted — `ci-backend.yml` + `dependency-scan.yml` are wired for OWASP `dependency-check-maven`, but the `NVD_API_KEY` repo secret is not yet provisioned. Until then, OWASP runs in best-effort mode (`continue-on-error`); CVE finding accuracy degrades under NVD throttling. **Action:** request a free key at <https://nvd.nist.gov/developers/request-an-api-key> and `gh secret set NVD_API_KEY --body <key>`. |
 
 ## 9. Getting Started (after scaffold skills run)
 
