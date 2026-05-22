@@ -3,17 +3,18 @@ name: ci-backend
 on:
   push:
     branches: [dev, staging, prod]
-    paths:
-      - 'backend/**'
-      - '.github/workflows/ci-backend.yml'
   pull_request:
     branches: [dev, staging, prod]
-    paths:
-      - 'backend/**'
-      - '.github/workflows/ci-backend.yml'
 
 # Required by ADR-0009 branch protection on dev/staging/prod.
 # Required by ADR-0012 Flow A auto-merge gate.
+#
+# Path filters intentionally removed: this workflow IS a required status
+# check on dev/staging/prod, and GitHub treats a never-triggered required
+# check as "pending" forever — which would deadlock docs-only PRs (e.g. the
+# Flow B chore/flow-b-<date> PRs). Cost of running mvn verify on a docs-only
+# PR is acceptable (~3-5 min, negligible per-feature) and trivially
+# outweighed by avoiding the deadlock.
 
 concurrency:
   group: ci-backend-${{ github.ref }}
