@@ -203,16 +203,17 @@ handles all remote git operations after parsing your final JSON block.
     Set-Content -Path $tmpPrompt -Value $prompt -Encoding utf8
 
     try {
+        # YOLO mode — see run-features.ps1 for the safety rationale.
         $jsonOutput = & claude -p (Get-Content $tmpPrompt -Raw) `
             --output-format json `
-            --permission-mode acceptEdits 2>&1
+            --permission-mode bypassPermissions 2>&1
         $exit = $LASTEXITCODE
     } finally {
         Remove-Item $tmpPrompt -Force -ErrorAction SilentlyContinue
     }
 
     if ($exit -ne 0) {
-        if ($jsonOutput -match 'rate.limit|quota|too.many.requests') {
+        if ($jsonOutput -match '(?i)(rate.?limit|quota|too.?many.?requests|429|usage.?limit|exceed)') {
             throw [System.TimeoutException]::new('claude_quota_hit')
         }
         throw "claude -p failed (exit $exit): $jsonOutput"
@@ -220,11 +221,13 @@ handles all remote git operations after parsing your final JSON block.
 
     $wrapper = $jsonOutput | ConvertFrom-Json
     $resultText = $wrapper.result
-    if ($resultText -match '(?s)```json\s*(\{.*?\})\s*```[^`]*$') {
-        $structured = $Matches[1] | ConvertFrom-Json
-    } else {
+
+    # Last fenced ```json block (skip intermediate snippets in narration).
+    $jsonBlocks = [regex]::Matches($resultText, '(?s)```json\s*(\{.*?\})\s*```')
+    if ($jsonBlocks.Count -eq 0) {
         throw "Could not parse final JSON block from claude output. Raw:`n$resultText"
     }
+    $structured = $jsonBlocks[$jsonBlocks.Count - 1].Groups[1].Value | ConvertFrom-Json
 
     return @{
         security_issues    = $structured.security_issues
