@@ -75,5 +75,12 @@ docker-compose.override.yml
 .claude/local/
 .cache/
 
+# Anthropic-installed / user-scope skills live as `<name>/SKILL.md`
+# subdirectories under .claude/skills/. Our project-scoped skills are flat
+# `<name>.md` files at the same level — those stay tracked. This pattern
+# excludes only the subdirectory form so we never accidentally commit a
+# user's local skill install on `git add .claude/skills/`.
+.claude/skills/*/
+
 # ====== Orchestrator runtime ======
 orchestrator.lock
