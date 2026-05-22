@@ -74,3 +74,6 @@ docker-compose.override.yml
 # ====== AI / Tooling caches ======
 .claude/local/
 .cache/
+
+# ====== Orchestrator runtime ======
+orchestrator.lock
