@@ -30,15 +30,13 @@ public class ClientController {
 
   @GetMapping
   public ResponseEntity<PageResponse<ClientDto>> list(
-      @AuthenticationPrincipal Jwt jwt,
-      @RequestParam(defaultValue = "20") int limit) {
+      @AuthenticationPrincipal Jwt jwt, @RequestParam(defaultValue = "20") int limit) {
     UUID trainerId = UUID.fromString(jwt.getSubject());
     return ResponseEntity.ok(clientService.listClients(trainerId, limit));
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<ClientDto> get(
-      @AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+  public ResponseEntity<ClientDto> get(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
     UUID trainerId = UUID.fromString(jwt.getSubject());
     return ResponseEntity.ok(clientService.getClient(id, trainerId));
   }
@@ -63,8 +61,7 @@ public class ClientController {
 
   @DeleteMapping("/{id}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
-  public ResponseEntity<Void> delete(
-      @AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+  public ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
     UUID trainerId = UUID.fromString(jwt.getSubject());
     clientService.deleteClient(id, trainerId);
     return ResponseEntity.noContent().build();

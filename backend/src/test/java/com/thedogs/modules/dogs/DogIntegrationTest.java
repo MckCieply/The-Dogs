@@ -46,8 +46,7 @@ class DogIntegrationTest {
             .build();
     trainer = userRepository.save(trainer);
 
-    Client client =
-        Client.builder().trainer(trainer).name("Alice Smith").build();
+    Client client = Client.builder().trainer(trainer).name("Alice Smith").build();
     client = clientRepository.save(client);
 
     Dog dog = Dog.builder().client(client).name("Rex").breed("Labrador").build();

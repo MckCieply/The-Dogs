@@ -39,9 +39,7 @@ public class NoteController {
 
   @GetMapping("/{noteId}")
   public ResponseEntity<NoteDto> get(
-      @AuthenticationPrincipal Jwt jwt,
-      @PathVariable UUID dogId,
-      @PathVariable UUID noteId) {
+      @AuthenticationPrincipal Jwt jwt, @PathVariable UUID dogId, @PathVariable UUID noteId) {
     UUID trainerId = UUID.fromString(jwt.getSubject());
     return ResponseEntity.ok(noteService.getNote(dogId, noteId, trainerId));
   }
@@ -69,9 +67,7 @@ public class NoteController {
   @DeleteMapping("/{noteId}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public ResponseEntity<Void> delete(
-      @AuthenticationPrincipal Jwt jwt,
-      @PathVariable UUID dogId,
-      @PathVariable UUID noteId) {
+      @AuthenticationPrincipal Jwt jwt, @PathVariable UUID dogId, @PathVariable UUID noteId) {
     UUID trainerId = UUID.fromString(jwt.getSubject());
     noteService.deleteNote(dogId, noteId, trainerId);
     return ResponseEntity.noContent().build();

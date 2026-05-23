@@ -26,7 +26,12 @@ class TokenServiceTest {
     tokenService = new TokenService(SECRET, 15L, 7L);
 
     // Build a User without saving to DB — we only need the id, email and roles
-    testUser = User.builder().email("trainer@example.com").passwordHash("irrelevant").roles(List.of(Role.ROLE_TRAINER)).build();
+    testUser =
+        User.builder()
+            .email("trainer@example.com")
+            .passwordHash("irrelevant")
+            .roles(List.of(Role.ROLE_TRAINER))
+            .build();
 
     // Set the ID via reflection so we can verify it appears in the token
     try {

@@ -30,8 +30,7 @@ public class AppointmentController {
 
   @GetMapping
   public ResponseEntity<PageResponse<AppointmentDto>> list(
-      @AuthenticationPrincipal Jwt jwt,
-      @RequestParam(defaultValue = "20") int limit) {
+      @AuthenticationPrincipal Jwt jwt, @RequestParam(defaultValue = "20") int limit) {
     UUID trainerId = UUID.fromString(jwt.getSubject());
     return ResponseEntity.ok(appointmentService.listAppointments(trainerId, limit));
   }
@@ -62,8 +61,7 @@ public class AppointmentController {
 
   @DeleteMapping("/{id}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
-  public ResponseEntity<Void> delete(
-      @AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+  public ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
     UUID trainerId = UUID.fromString(jwt.getSubject());
     appointmentService.deleteAppointment(id, trainerId);
     return ResponseEntity.noContent().build();

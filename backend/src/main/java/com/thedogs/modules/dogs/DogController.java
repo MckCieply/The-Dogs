@@ -30,15 +30,13 @@ public class DogController {
 
   @GetMapping
   public ResponseEntity<PageResponse<DogDto>> list(
-      @AuthenticationPrincipal Jwt jwt,
-      @RequestParam(defaultValue = "20") int limit) {
+      @AuthenticationPrincipal Jwt jwt, @RequestParam(defaultValue = "20") int limit) {
     UUID trainerId = UUID.fromString(jwt.getSubject());
     return ResponseEntity.ok(dogService.listDogs(trainerId, limit));
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<DogDto> get(
-      @AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+  public ResponseEntity<DogDto> get(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
     UUID trainerId = UUID.fromString(jwt.getSubject());
     return ResponseEntity.ok(dogService.getDog(id, trainerId));
   }
@@ -61,8 +59,7 @@ public class DogController {
 
   @DeleteMapping("/{id}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
-  public ResponseEntity<Void> archive(
-      @AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+  public ResponseEntity<Void> archive(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
     UUID trainerId = UUID.fromString(jwt.getSubject());
     dogService.archiveDog(id, trainerId);
     return ResponseEntity.noContent().build();

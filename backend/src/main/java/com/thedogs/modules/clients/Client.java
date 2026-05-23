@@ -39,8 +39,7 @@ public class Client extends BaseEntity {
   @Column(length = 50)
   private String phone;
 
-  @Column
-  private String email;
+  @Column private String email;
 
   @Column(columnDefinition = "TEXT")
   private String notes;

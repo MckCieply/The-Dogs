@@ -47,8 +47,7 @@ public class Appointment extends BaseEntity {
   @Column(nullable = false)
   private Instant endsAt;
 
-  @Column
-  private String location;
+  @Column private String location;
 
   @Builder.Default
   @Enumerated(EnumType.STRING)

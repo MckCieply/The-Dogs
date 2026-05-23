@@ -19,7 +19,5 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
       "SELECT a FROM Appointment a WHERE a.trainer.id = :trainerId"
           + " AND a.startsAt >= :from AND a.endsAt <= :to ORDER BY a.startsAt ASC")
   List<Appointment> findByTrainerIdAndDateRange(
-      @Param("trainerId") UUID trainerId,
-      @Param("from") Instant from,
-      @Param("to") Instant to);
+      @Param("trainerId") UUID trainerId, @Param("from") Instant from, @Param("to") Instant to);
 }
