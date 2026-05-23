@@ -275,3 +275,4 @@ See [docs/adr/](adr/). The current set:
 - [ADR-0010 — AI team consolidation (8 roles)](adr/0010-ai-team-consolidation.md) *(superseded by ADR-0012)*
 - [ADR-0011 — Hosting strategy: self-hosted laptop + Cloudflare Tunnel](adr/0011-hosting-strategy.md)
 - [ADR-0012 — Automated two-flow pipeline (Flow A per feature, Flow B 3×/week)](adr/0012-automated-two-flow-pipeline.md)
+- [ADR-0013 — Password reset without SMTP (admin-token flow)](adr/0013-password-reset-without-smtp.md)
