@@ -6,7 +6,7 @@
     "start": "ng serve --configuration development",
     "build": "ng build --configuration production",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test",
+    "test": "vitest",
     "lint": "eslint \"src/**/*.{ts,html}\"",
     "e2e": "playwright test",
     "e2e:install": "playwright install --with-deps chromium"
