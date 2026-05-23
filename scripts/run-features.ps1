@@ -470,7 +470,7 @@ function Sync-IssueOnDone {
 function Get-NextQueuedFeature {
     $queue = Get-Queue
     # Order: priority asap first, then by id.
-    $sorted = $queue.features | Where-Object status -eq 'queued' | Sort-Object @{Expression='priority'; Descending=$true}, id
+    $sorted = $queue.features | Where-Object status -eq 'queued' | Sort-Object -Stable @{Expression={ if ($_.priority -eq 'asap') { 0 } elseif ($_.priority -eq 'normal') { 1 } else { 2 } }}
     return $sorted | Select-Object -First 1
 }
 
@@ -479,7 +479,7 @@ function Get-DriftAwareness {
     $log = git log --oneline "$tag..dev" 2>$null
     $files = git diff --name-only "$tag..dev" 2>$null | Sort-Object -Unique
     if (-not $log) { return "No commits since $tag." }
-    return "Since $tag:`n" + ($log -join "`n") + "`n`nChanged files:`n" + ($files -join "`n")
+    return "Since ${tag}:`n" + ($log -join "`n") + "`n`nChanged files:`n" + ($files -join "`n")
 }
 
 function Trigger-FlowBAdHoc {
@@ -561,10 +561,12 @@ try {
         }
 
         Write-Log 'INFO' "=== Processing $featureId ($slug) ==="
-        Update-Feature $featureId @{
-            status     = 'in_progress'
-            started_at = (Get-Date).ToString('o')
-            attempts   = ($feature.attempts ?? 0) + 1
+        if (-not $DryRun) {
+            Update-Feature $featureId @{
+                status     = 'in_progress'
+                started_at = (Get-Date).ToString('o')
+                attempts   = ($feature.attempts ?? 0) + 1
+            }
         }
 
         try {
