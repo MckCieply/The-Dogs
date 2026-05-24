@@ -1,5 +1,6 @@
 package com.thedogs.modules.auth;
 
+import com.thedogs.modules.user.Role;
 import com.thedogs.modules.user.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -26,6 +27,9 @@ public class TokenService {
       @Value("${jwt.secret}") String secret,
       @Value("${jwt.access-token-ttl-minutes}") long accessTokenTtlMinutes,
       @Value("${jwt.refresh-token-ttl-days}") long refreshTokenTtlDays) {
+    // Use the raw secret bytes. NimbusJwtDecoder in SecurityConfig is built with this same key
+    // and defaults to HS256 verification. We also sign with HS256 explicitly to ensure the
+    // algorithm is locked regardless of key length (JJWT 0.12+ auto-selects based on length).
     this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     this.accessTokenTtlMinutes = accessTokenTtlMinutes;
     this.refreshTokenTtlDays = refreshTokenTtlDays;
@@ -37,7 +41,7 @@ public class TokenService {
 
   public String generateAccessToken(User user) {
     Instant now = Instant.now();
-    List<String> roles = user.getRoles().stream().map(Enum::name).toList();
+    List<String> roles = user.getRoles().stream().map(Role::getName).toList();
 
     return Jwts.builder()
         .subject(user.getId().toString())
@@ -45,7 +49,7 @@ public class TokenService {
         .claim("roles", roles)
         .issuedAt(Date.from(now))
         .expiration(Date.from(now.plus(accessTokenTtlMinutes, ChronoUnit.MINUTES)))
-        .signWith(secretKey)
+        .signWith(secretKey, Jwts.SIG.HS256)
         .compact();
   }
 

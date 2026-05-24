@@ -8,6 +8,7 @@ import com.thedogs.modules.user.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,8 +26,16 @@ class TokenServiceTest {
   void setUp() {
     tokenService = new TokenService(SECRET, 15L, 7L);
 
+    // Build a Role entity manually (no DB needed for unit test)
+    Role trainerRole = Role.builder().id((short) 1).name("ROLE_TRAINER").build();
+
     // Build a User without saving to DB — we only need the id, email and roles
-    testUser = User.builder().email("trainer@example.com").passwordHash("irrelevant").roles(List.of(Role.ROLE_TRAINER)).build();
+    testUser =
+        User.builder()
+            .email("trainer@example.com")
+            .passwordHash("irrelevant")
+            .roles(Set.of(trainerRole))
+            .build();
 
     // Set the ID via reflection so we can verify it appears in the token
     try {

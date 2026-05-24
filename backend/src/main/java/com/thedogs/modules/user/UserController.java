@@ -22,4 +22,9 @@ public class UserController {
     UUID userId = UUID.fromString(jwt.getSubject());
     return ResponseEntity.ok(userService.getCurrentUser(userId));
   }
+
+  @GetMapping("/ping")
+  public ResponseEntity<UserService.PingResponse> ping(@AuthenticationPrincipal Jwt jwt) {
+    return ResponseEntity.ok(userService.getPing(jwt));
+  }
 }

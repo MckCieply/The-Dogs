@@ -1,11 +1,17 @@
 spring:
   datasource:
+    # CI default: Testcontainers starts a PostgreSQL 17 container automatically on first connection.
+    # Requires Docker. On a developer machine without working Docker Desktop named-pipe support,
+    # override both URL and driver via environment variables:
+    #   SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/thedogs_test
+    #   SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
+    # The thedogs_test database must exist and be accessible with the same credentials.
     url: jdbc:tc:postgresql:17:///thedogs_test
     driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: true
+    show-sql: false
   flyway:
     enabled: true
 
@@ -16,4 +22,4 @@ jwt:
 
 logging:
   level:
-    com.thedogs: DEBUG
+    com.thedogs: INFO
