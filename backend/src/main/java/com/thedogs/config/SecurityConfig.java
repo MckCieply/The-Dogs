@@ -35,7 +35,10 @@ public class SecurityConfig {
   @Bean
   public JwtDecoder jwtDecoder(TokenService tokenService) {
     SecretKey key = tokenService.getSecretKey();
-    return NimbusJwtDecoder.withSecretKey(key).build();
+    // Must match the algorithm used in TokenService.generateAccessToken (explicitly HS256)
+    return NimbusJwtDecoder.withSecretKey(key)
+        .macAlgorithm(org.springframework.security.oauth2.jose.jws.MacAlgorithm.HS256)
+        .build();
   }
 
   @Bean
@@ -60,27 +63,46 @@ public class SecurityConfig {
   }
 
   @Bean
-  public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtDecoder jwtDecoder)
+  public SecurityFilterChain securityFilterChain(
+      HttpSecurity http,
+      JwtDecoder jwtDecoder,
+      JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint)
       throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .headers(
+            headers ->
+                headers
+                    .contentTypeOptions(contentType -> {})
+                    .frameOptions(frame -> frame.deny())
+                    .httpStrictTransportSecurity(
+                        hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31536000)))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/refresh")
+                auth
+                    // Add explicit paths here; never use a wildcard for /auth/** without review
+                    .requestMatchers(HttpMethod.GET, "/api/v1/auth/some-public-stub")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/v1/auth/login")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/v1/auth/refresh")
                     .permitAll()
                     .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
                     .permitAll()
-                    .requestMatchers("/actuator/health")
+                    .requestMatchers("/actuator/health", "/actuator/info")
                     .permitAll()
                     .anyRequest()
                     .authenticated())
         .oauth2ResourceServer(
             oauth2 ->
-                oauth2.jwt(
-                    jwt ->
-                        jwt.decoder(jwtDecoder)
-                            .jwtAuthenticationConverter(jwtAuthenticationConverter())));
+                oauth2
+                    .jwt(
+                        jwt ->
+                            jwt.decoder(jwtDecoder)
+                                .jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                    .authenticationEntryPoint(jwtAuthenticationEntryPoint))
+        .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint));
     return http.build();
   }
 }

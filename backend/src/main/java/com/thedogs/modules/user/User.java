@@ -1,20 +1,18 @@
 package com.thedogs.modules.user;
 
 import com.thedogs.common.BaseEntity;
-import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -45,16 +43,25 @@ public class User extends BaseEntity implements UserDetails {
   @Column(nullable = false)
   private String passwordHash;
 
+  @Column(name = "display_name", nullable = false)
   @Builder.Default
-  @ElementCollection(fetch = FetchType.EAGER)
-  @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
-  @Enumerated(EnumType.STRING)
-  @Column(name = "role")
-  private List<Role> roles = new ArrayList<>();
+  private String displayName = "";
+
+  @Column(nullable = false)
+  @Builder.Default
+  private boolean enabled = true;
+
+  @Builder.Default
+  @ManyToMany(fetch = FetchType.EAGER)
+  @JoinTable(
+      name = "user_role",
+      joinColumns = @JoinColumn(name = "user_id"),
+      inverseJoinColumns = @JoinColumn(name = "role_id"))
+  private Set<Role> roles = new HashSet<>();
 
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
-    return roles.stream().map(r -> new SimpleGrantedAuthority(r.name())).toList();
+    return roles.stream().map(r -> new SimpleGrantedAuthority(r.getName())).toList();
   }
 
   @Override
@@ -65,6 +72,11 @@ public class User extends BaseEntity implements UserDetails {
   @Override
   public String getUsername() {
     return email;
+  }
+
+  @Override
+  public boolean isEnabled() {
+    return enabled;
   }
 
   @Override

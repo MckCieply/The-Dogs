@@ -7,9 +7,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.thedogs.modules.auth.dto.LoginRequest;
 import com.thedogs.modules.user.Role;
+import com.thedogs.modules.user.RoleRepository;
 import com.thedogs.modules.user.User;
 import com.thedogs.modules.user.UserRepository;
-import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,7 @@ class AuthIntegrationTest {
   @Autowired private MockMvc mockMvc;
   @Autowired private ObjectMapper objectMapper;
   @Autowired private UserRepository userRepository;
+  @Autowired private RoleRepository roleRepository;
   @Autowired private PasswordEncoder passwordEncoder;
 
   private static final String TEST_EMAIL = "trainer@example.com";
@@ -37,11 +39,12 @@ class AuthIntegrationTest {
 
   @BeforeEach
   void setUp() {
+    Role trainerRole = roleRepository.findByName("ROLE_TRAINER").orElseThrow();
     User user =
         User.builder()
             .email(TEST_EMAIL)
             .passwordHash(passwordEncoder.encode(TEST_PASSWORD))
-            .roles(List.of(Role.ROLE_TRAINER))
+            .roles(Set.of(trainerRole))
             .build();
     userRepository.save(user);
   }
