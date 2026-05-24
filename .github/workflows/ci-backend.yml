@@ -114,11 +114,15 @@ jobs:
           java-version: '25'
           cache: maven
 
+      - name: Get week number for OWASP cache key
+        id: date
+        run: echo "week=$(date +%Y-%U)" >> $GITHUB_OUTPUT
+
       - name: Cache OWASP NVD database
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: owasp-nvd-${{ runner.os }}-${{ github.run_number }}
+          key: owasp-nvd-${{ runner.os }}-week-${{ steps.date.outputs.week }}
           restore-keys: |
             owasp-nvd-${{ runner.os }}-
 
