@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
  * Pure unit tests for TokenService claim edge cases not covered by TokenServiceTest.
  *
  * <p>Specifically covers:
+ *
  * <ul>
  *   <li>The {@code sub} claim is a valid UUID string matching the user's id
  *   <li>The {@code email} claim is present and correct
@@ -74,9 +75,7 @@ class TokenServiceClaimsTest {
 
     // Must parse as a UUID without throwing — proves the value is a well-formed UUID string
     UUID parsedSub = UUID.fromString(sub);
-    assertThat(parsedSub)
-        .as("sub claim must be the UUID of the user")
-        .isEqualTo(testUserId);
+    assertThat(parsedSub).as("sub claim must be the UUID of the user").isEqualTo(testUserId);
   }
 
   // ---------------------------------------------------------------------------

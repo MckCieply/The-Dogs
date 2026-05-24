@@ -102,8 +102,7 @@ public class SecurityConfig {
                             jwt.decoder(jwtDecoder)
                                 .jwtAuthenticationConverter(jwtAuthenticationConverter()))
                     .authenticationEntryPoint(jwtAuthenticationEntryPoint))
-        .exceptionHandling(
-            ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint));
+        .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint));
     return http.build();
   }
 }

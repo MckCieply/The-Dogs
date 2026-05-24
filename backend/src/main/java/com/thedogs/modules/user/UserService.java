@@ -50,8 +50,7 @@ public class UserService implements UserDetailsService {
   }
 
   private UserDto toDto(User user) {
-    Set<String> roleNames =
-        user.getRoles().stream().map(Role::getName).collect(Collectors.toSet());
+    Set<String> roleNames = user.getRoles().stream().map(Role::getName).collect(Collectors.toSet());
     return new UserDto(user.getId(), user.getEmail(), roleNames, user.getCreatedAt());
   }
 

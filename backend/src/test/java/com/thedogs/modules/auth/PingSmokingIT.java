@@ -173,16 +173,13 @@ class PingSmokingIT {
 
   @Test
   void publicStub_withoutAuthorizationHeader_returns200() throws Exception {
-    mockMvc
-        .perform(get("/api/v1/auth/some-public-stub"))
-        .andExpect(status().isOk());
+    mockMvc.perform(get("/api/v1/auth/some-public-stub")).andExpect(status().isOk());
   }
 
   @Test
   void publicStub_withoutAuthorizationHeader_responseBodyContainsStatusOk() throws Exception {
     mockMvc
-        .perform(
-            get("/api/v1/auth/some-public-stub").accept(MediaType.APPLICATION_JSON))
+        .perform(get("/api/v1/auth/some-public-stub").accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("ok"));
   }
@@ -192,9 +189,9 @@ class PingSmokingIT {
   // ---------------------------------------------------------------------------
 
   /**
-   * Builds a JWT whose expiration is set one hour in the past. The token is signed with the
-   * correct test secret and explicit HS256 (matching the decoder) so the signature is valid —
-   * only the expiry claim makes it invalid.
+   * Builds a JWT whose expiration is set one hour in the past. The token is signed with the correct
+   * test secret and explicit HS256 (matching the decoder) so the signature is valid — only the
+   * expiry claim makes it invalid.
    */
   private String buildExpiredToken(User user) {
     SecretKey key = Keys.hmacShaKeyFor(TEST_SECRET.getBytes(StandardCharsets.UTF_8));

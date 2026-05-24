@@ -39,10 +39,7 @@ class ValidationErrorIT {
     String body = "{\"password\":\"some-password\"}";
 
     mockMvc
-        .perform(
-            post("/api/v1/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(body))
+        .perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isBadRequest());
   }
 
@@ -51,10 +48,7 @@ class ValidationErrorIT {
     String body = "{\"password\":\"some-password\"}";
 
     mockMvc
-        .perform(
-            post("/api/v1/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(body))
+        .perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isBadRequest())
         .andExpect(content().contentTypeCompatibleWith("application/problem+json"));
   }
@@ -64,10 +58,7 @@ class ValidationErrorIT {
     String body = "{\"password\":\"some-password\"}";
 
     mockMvc
-        .perform(
-            post("/api/v1/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(body))
+        .perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.errors").isArray())
         .andExpect(jsonPath("$.errors[0].code").value("field_required"));
@@ -78,10 +69,7 @@ class ValidationErrorIT {
     String body = "{\"password\":\"some-password\"}";
 
     mockMvc
-        .perform(
-            post("/api/v1/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(body))
+        .perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.errors[0].field").value("email"));
   }
@@ -95,10 +83,7 @@ class ValidationErrorIT {
     String body = "{\"email\":\"valid@example.com\"}";
 
     mockMvc
-        .perform(
-            post("/api/v1/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(body))
+        .perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isBadRequest())
         .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
         .andExpect(jsonPath("$.errors").isArray())
@@ -114,10 +99,7 @@ class ValidationErrorIT {
     String body = "{\"email\":\"\",\"password\":\"some-password\"}";
 
     mockMvc
-        .perform(
-            post("/api/v1/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(body))
+        .perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isBadRequest())
         .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
         .andExpect(jsonPath("$.errors").isArray())

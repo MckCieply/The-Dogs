@@ -30,18 +30,19 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Spring-context integration tests for security wiring concerns that do not fit the
- * per-endpoint tests in PingSmokingIT.
+ * Spring-context integration tests for security wiring concerns that do not fit the per-endpoint
+ * tests in PingSmokingIT.
  *
  * <p>Covers:
+ *
  * <ul>
  *   <li>AC-7 — BCryptPasswordEncoder is configured with cost ≥ 12
  *   <li>AC-9 — No password, JWT token string, or passwordHash value appears in application logs
  *       during a login + ping flow
  * </ul>
  *
- * <p>Uses the TC JDBC URL from application-test.yml, so Docker is required. Named *IT so that
- * Maven Failsafe picks it up.
+ * <p>Uses the TC JDBC URL from application-test.yml, so Docker is required. Named *IT so that Maven
+ * Failsafe picks it up.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
@@ -123,14 +124,11 @@ class SecurityWiringIT {
               .getContentAsString();
 
       // Extract the accessToken value from the JSON response for use in subsequent assertion
-      accessToken =
-          objectMapper.readTree(loginResponseBody).path("accessToken").asText(null);
+      accessToken = objectMapper.readTree(loginResponseBody).path("accessToken").asText(null);
 
       if (accessToken != null && !accessToken.isBlank()) {
         mockMvc
-            .perform(
-                get("/api/v1/me/ping")
-                    .header("Authorization", "Bearer " + accessToken))
+            .perform(get("/api/v1/me/ping").header("Authorization", "Bearer " + accessToken))
             .andReturn();
       }
     } finally {

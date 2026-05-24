@@ -23,9 +23,7 @@ import lombok.ToString;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Role {
 
-  @Id
-  @EqualsAndHashCode.Include
-  private Short id;
+  @Id @EqualsAndHashCode.Include private Short id;
 
   @ToString.Include
   @Column(nullable = false, unique = true)
