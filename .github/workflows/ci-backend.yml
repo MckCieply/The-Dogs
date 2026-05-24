@@ -37,16 +37,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # google-java-format uses javac-internal getDiagnostics() removed in JDK 25.
+      # Run Spotless under JDK 21 (LTS) where the API still exists, then switch
+      # back to JDK 25 for compilation so we keep the Java 25 target.
+      - name: Set up JDK 21 (for google-java-format / Spotless)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Verify Spotless formatting
+        working-directory: backend
+        run: ./mvnw -B spotless:check
+
       - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '25'
           cache: maven
-
-      - name: Verify Spotless formatting
-        working-directory: backend
-        run: ./mvnw -B spotless:check
 
       - name: Run Maven verify (compile + tests + Testcontainers integration)
         working-directory: backend
@@ -104,11 +114,15 @@ jobs:
           java-version: '25'
           cache: maven
 
+      - name: Get week number for OWASP cache key
+        id: date
+        run: echo "week=$(date +%Y-%U)" >> $GITHUB_OUTPUT
+
       - name: Cache OWASP NVD database
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: owasp-nvd-${{ runner.os }}-${{ github.run_number }}
+          key: owasp-nvd-${{ runner.os }}-week-${{ steps.date.outputs.week }}
           restore-keys: |
             owasp-nvd-${{ runner.os }}-
 

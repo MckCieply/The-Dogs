@@ -81,8 +81,6 @@ class NoteIntegrationTest {
 
   @Test
   void listNotes_withoutToken_returns401() throws Exception {
-    mockMvc
-        .perform(get("/api/v1/dogs/{dogId}/notes", dogId))
-        .andExpect(status().isUnauthorized());
+    mockMvc.perform(get("/api/v1/dogs/{dogId}/notes", dogId)).andExpect(status().isUnauthorized());
   }
 }

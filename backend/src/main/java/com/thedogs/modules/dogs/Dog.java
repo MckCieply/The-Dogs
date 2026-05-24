@@ -39,11 +39,9 @@ public class Dog extends BaseEntity {
   @Column(nullable = false)
   private String name;
 
-  @Column
-  private String breed;
+  @Column private String breed;
 
-  @Column
-  private LocalDate birthdate;
+  @Column private LocalDate birthdate;
 
   @Column(length = 10)
   private String sex;

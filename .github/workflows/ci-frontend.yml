@@ -83,10 +83,8 @@ jobs:
         run: npm ci
 
       - name: Serve built bundle
-        working-directory: frontend
-        run: npx http-server dist/ -p 4200 -s &
-        env:
-          BROWSER: none
+        shell: bash
+        run: python3 -m http.server 4200 --directory frontend/dist/the-dogs/browser &
 
       - name: Wait for server
         run: |

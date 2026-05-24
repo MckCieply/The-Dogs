@@ -16,7 +16,9 @@ public interface AppointmentMapper {
 
   @Mapping(target = "trainer", ignore = true)
   @Mapping(target = "client", ignore = true)
-  @Mapping(target = "status", defaultExpression = "java(com.thedogs.modules.scheduler.AppointmentStatus.SCHEDULED)")
+  @Mapping(
+      target = "status",
+      defaultExpression = "java(com.thedogs.modules.scheduler.AppointmentStatus.SCHEDULED)")
   Appointment toEntity(AppointmentRequest request);
 
   @Mapping(target = "trainer", ignore = true)

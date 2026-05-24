@@ -63,10 +63,12 @@ $ProgressPreference = 'SilentlyContinue'
 
 # --- Paths --------------------------------------------------------------------
 
-$repoRoot   = Resolve-Path (Join-Path $PSScriptRoot '..')
-$queuePath  = if ($QueuePath) { Resolve-Path $QueuePath } else { Join-Path $PSScriptRoot 'features.json' }
-$lockPath   = Join-Path $repoRoot 'orchestrator.lock'
-$logPath    = Join-Path $repoRoot 'orchestrator.log'
+$repoRoot    = Resolve-Path (Join-Path $PSScriptRoot '..')
+$queuePath   = if ($QueuePath) { Resolve-Path $QueuePath } else { Join-Path $PSScriptRoot 'features.json' }
+$lockPath    = Join-Path $repoRoot 'orchestrator.lock'
+$logPath     = Join-Path $repoRoot 'orchestrator.log'
+$pipelineLog = Join-Path $repoRoot 'logs' 'pipeline.jsonl'
+$sessionsDir = Join-Path $repoRoot 'logs' 'sessions'
 
 # --- Constants from ADR-0012 --------------------------------------------------
 
@@ -74,8 +76,8 @@ $DAILY_CAP          = 3                                # features per calendar d
 $WINDOW_CAP         = 10                               # features per Flow B window
 $ROUND_LIMIT        = 2                                # reviewer review rounds before needs_review
 $RETRY_LIMIT        = 1                                # retries after exception
-$QUOTA_SLEEP_SEC    = 18360                            # 5.1 hours sleep on Pro quota hit
-$LOCK_STALE_SEC     = 18900                            # stale lock (>5.25h) is force-removed
+$QUOTA_SLEEP_SEC    = 3600                             # 1 hour sleep on Pro quota hit (retry each hour until window resets)
+$LOCK_STALE_SEC     = 3600                             # stale lock (>1h) is force-removed
 $POLL_PR_SECONDS    = 60                               # gh pr view polling interval
 $POLL_PR_MAX        = 90                               # max polls (~90 min) before giving up on auto-merge
 $FLOW_B_DAYS        = @('Monday', 'Wednesday', 'Friday')
@@ -95,6 +97,22 @@ function Write-Log {
     } else {
         Write-Host $line
     }
+}
+
+# --- Pipeline event log -------------------------------------------------------
+
+function Write-PipelineEvent {
+    param([hashtable]$Fields)
+    $null = New-Item -ItemType Directory -Force -Path (Split-Path $pipelineLog)
+    $Fields['ts'] = (Get-Date).ToString('o')
+    ($Fields | ConvertTo-Json -Compress) + '' | Add-Content -Path $pipelineLog -Encoding utf8
+}
+
+function Save-Session {
+    param([string]$FeatureId, [string]$Timestamp, $Wrapper)
+    $null = New-Item -ItemType Directory -Force -Path $sessionsDir
+    $path = Join-Path $sessionsDir "$FeatureId-$Timestamp.json"
+    $Wrapper | ConvertTo-Json -Depth 10 | Set-Content -Path $path -Encoding utf8
 }
 
 # --- Lock ---------------------------------------------------------------------
@@ -340,15 +358,23 @@ operations after parsing your final JSON block.
     }
 
     return @{
-        verdict     = $structured.verdict
-        rounds      = $structured.rounds
-        branch      = $structured.branch
-        blocking    = $structured.blocking_issues
-        warnings    = $structured.warnings
-        ctx7        = $structured.context7_libraries
-        cost_usd    = $wrapper.total_cost_usd
-        session_id  = $wrapper.session_id
-        raw         = $resultText
+        verdict           = $structured.verdict
+        rounds            = $structured.rounds
+        branch            = $structured.branch
+        blocking          = $structured.blocking_issues
+        warnings          = $structured.warnings
+        ctx7              = $structured.context7_libraries
+        cost_usd          = $wrapper.total_cost_usd
+        session_id        = $wrapper.session_id
+        duration_ms       = $wrapper.duration_ms
+        num_turns         = $wrapper.num_turns
+        stop_reason       = $wrapper.stop_reason
+        input_tokens      = $wrapper.usage.input_tokens
+        output_tokens     = $wrapper.usage.output_tokens
+        cache_write_tokens = $wrapper.usage.cache_creation_input_tokens
+        cache_read_tokens  = $wrapper.usage.cache_read_input_tokens
+        raw               = $resultText
+        _wrapper          = $wrapper
     }
 }
 
@@ -470,7 +496,7 @@ function Sync-IssueOnDone {
 function Get-NextQueuedFeature {
     $queue = Get-Queue
     # Order: priority asap first, then by id.
-    $sorted = $queue.features | Where-Object status -eq 'queued' | Sort-Object @{Expression='priority'; Descending=$true}, id
+    $sorted = $queue.features | Where-Object status -eq 'queued' | Sort-Object -Stable @{Expression={ if ($_.priority -eq 'asap') { 0 } elseif ($_.priority -eq 'normal') { 1 } else { 2 } }}
     return $sorted | Select-Object -First 1
 }
 
@@ -479,7 +505,7 @@ function Get-DriftAwareness {
     $log = git log --oneline "$tag..dev" 2>$null
     $files = git diff --name-only "$tag..dev" 2>$null | Sort-Object -Unique
     if (-not $log) { return "No commits since $tag." }
-    return "Since $tag:`n" + ($log -join "`n") + "`n`nChanged files:`n" + ($files -join "`n")
+    return "Since ${tag}:`n" + ($log -join "`n") + "`n`nChanged files:`n" + ($files -join "`n")
 }
 
 function Trigger-FlowBAdHoc {
@@ -561,10 +587,19 @@ try {
         }
 
         Write-Log 'INFO' "=== Processing $featureId ($slug) ==="
-        Update-Feature $featureId @{
-            status     = 'in_progress'
-            started_at = (Get-Date).ToString('o')
-            attempts   = ($feature.attempts ?? 0) + 1
+        $featureStartTs = (Get-Date).ToString('yyyyMMddTHHmmss')
+        if (-not $DryRun) {
+            Update-Feature $featureId @{
+                status     = 'in_progress'
+                started_at = (Get-Date).ToString('o')
+                attempts   = ($feature.attempts ?? 0) + 1
+            }
+            Write-PipelineEvent @{
+                event   = 'feature_start'
+                id      = $featureId
+                slug    = $slug
+                attempt = ($feature.attempts ?? 0) + 1
+            }
         }
 
         try {
@@ -595,6 +630,24 @@ try {
                 last_cost_usd   = $result.cost_usd
                 last_verdict    = $result.verdict
             }
+            if (-not $DryRun) {
+                Save-Session -FeatureId $featureId -Timestamp $featureStartTs -Wrapper $result._wrapper
+                Write-PipelineEvent @{
+                    event              = 'claude_done'
+                    id                 = $featureId
+                    verdict            = $result.verdict
+                    rounds             = $result.rounds
+                    stop_reason        = $result.stop_reason
+                    cost_usd           = $result.cost_usd
+                    duration_ms        = $result.duration_ms
+                    num_turns          = $result.num_turns
+                    input_tokens       = $result.input_tokens
+                    output_tokens      = $result.output_tokens
+                    cache_write_tokens = $result.cache_write_tokens
+                    cache_read_tokens  = $result.cache_read_tokens
+                    session_id         = $result.session_id
+                }
+            }
 
             switch ($result.verdict) {
                 'approve' {
@@ -611,6 +664,11 @@ try {
                             merged_pr    = $prUrl
                         }
                         Write-Log 'INFO' "$featureId merged -> $prUrl"
+                        Write-PipelineEvent @{
+                            event  = 'feature_done'
+                            id     = $featureId
+                            pr_url = $prUrl
+                        }
                     }
                     $processed++
                 }
@@ -629,6 +687,11 @@ try {
         } catch {
             $errMsg = $_.Exception.Message
             Write-Log 'ERROR' "$featureId attempt failed: $errMsg"
+            Write-PipelineEvent @{
+                event = 'feature_failed'
+                id    = $featureId
+                error = $errMsg
+            }
             if (($feature.attempts ?? 0) -lt $RETRY_LIMIT) {
                 Update-Feature $featureId @{
                     status     = 'queued'

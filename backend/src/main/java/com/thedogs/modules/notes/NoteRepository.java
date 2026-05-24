@@ -20,7 +20,5 @@ public interface NoteRepository extends JpaRepository<Note, UUID> {
       "SELECT n FROM Note n WHERE n.id = :noteId AND n.dog.id = :dogId"
           + " AND n.trainer.id = :trainerId")
   Optional<Note> findByIdAndDogIdAndTrainerId(
-      @Param("noteId") UUID noteId,
-      @Param("dogId") UUID dogId,
-      @Param("trainerId") UUID trainerId);
+      @Param("noteId") UUID noteId, @Param("dogId") UUID dogId, @Param("trainerId") UUID trainerId);
 }

@@ -16,8 +16,7 @@ public interface DogRepository extends JpaRepository<Dog, UUID> {
   List<Dog> findByTrainerId(@Param("trainerId") UUID trainerId, Pageable pageable);
 
   /** Find a specific dog, ensuring it belongs to the given trainer. */
-  @Query(
-      "SELECT d FROM Dog d JOIN d.client c WHERE d.id = :dogId AND c.trainer.id = :trainerId")
+  @Query("SELECT d FROM Dog d JOIN d.client c WHERE d.id = :dogId AND c.trainer.id = :trainerId")
   Optional<Dog> findByIdAndTrainerId(
       @Param("dogId") UUID dogId, @Param("trainerId") UUID trainerId);
 
