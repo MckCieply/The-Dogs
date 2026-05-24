@@ -397,9 +397,71 @@ function Complete-FeatureMerge {
         [Parameter(Mandatory)] $Result   # hashtable from Invoke-FlowAClaude
     )
 
-    # 1. Squash WIP commits on the branch into a single commit.
-    $mergeBase = (git merge-base $Branch dev).Trim()
+    Write-Log 'INFO' "Fetching latest dev to prevent PR conflicts..."
+    git fetch origin dev 2>&1 | Out-Null
+    
+    # Initialize the conflict flag; it will remain empty unless the micro-agent intervenes.
+    $conflictResolvedFlag = ""
+
+    # 1. Attempt a standard merge with dev to catch any drifts that happened during Flow A
+    $mergeOut = git merge origin/dev --no-edit 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Log 'WARN' "Merge conflict detected! Spawning Claude micro-agent to resolve inline..."
+        
+        # Give Claude a highly specific, scoped task to fix the merge state without full context overhead
+        $conflictPrompt = @"
+A merge conflict occurred while syncing this feature branch with `dev`. 
+1. Find all files containing git conflict markers (`<<<<<<<`).
+2. Resolve the conflicts logically based on the feature's intent.
+3. Run `./mvnw verify` and `npm run lint && npm test && npm run build` to ensure no regressions.
+4. Run `git add .` and `git commit --no-edit` to complete the merge.
+Output a brief summary of what was resolved.
+"@
+        $tmpPrompt = New-TemporaryFile
+        Set-Content -Path $tmpPrompt -Value $conflictPrompt -Encoding utf8
+        try {
+            & claude -p (Get-Content $tmpPrompt -Raw) --permission-mode bypassPermissions 2>&1 | Out-Null
+        } finally {
+            Remove-Item $tmpPrompt -Force -ErrorAction SilentlyContinue
+        }
+
+        # Verify Claude actually completed the merge (no unmerged files left)
+        $unmerged = git status --porcelain | Select-String '^UU'
+        if ($unmerged) {
+            git merge --abort 2>&1 | Out-Null
+            throw "Claude micro-agent failed to resolve the merge conflict automatically."
+        }
+        Write-Log 'INFO' "Merge conflict successfully resolved by Claude."
+        
+        # Flag this intervention so it appears clearly in the PR description
+        $conflictResolvedFlag = "`n`n⚠️ **Note:** A merge conflict with `dev` was automatically resolved by the Claude micro-agent before this PR was opened."
+    }
+
+    # 2. Squash everything (feature work + resolved conflicts) against the new dev tip
+    $mergeBase = (git rev-parse origin/dev).Trim()
     git reset --soft $mergeBase 2>&1 | Out-Null
+
+    # 3. Automated Formatting Pass (Backend & Frontend)
+    # Done AFTER the merge/squash to clean up any messy indentation left by the micro-agent
+    Write-Log 'INFO' "Running formatters..."
+    & (Join-Path $repoRoot 'mvnw') spotless:apply 2>&1 | Out-Null
+    
+    $frontendDir = Join-Path $repoRoot 'frontend'
+    if (Test-Path (Join-Path $frontendDir 'package.json')) {
+        & npm --prefix $frontendDir run lint -- --fix 2>&1 | Out-Null 
+    }
+    
+    # 4. Zero-Trust Compilation Check
+    # Validates the repo is in a buildable state before committing, preventing CI loop failures
+    Write-Log 'INFO' "Verifying backend compiles after formatting/merging..."
+    $buildOut = & (Join-Path $repoRoot 'mvnw') clean test-compile 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        git reset --hard 2>&1 | Out-Null # Revert to safe state
+        throw "Build failed after merge resolution or formatting. Fast-failing before PR."
+    }
+
+    # Stage formatting changes into the single squash commit
+    git add . 2>&1 | Out-Null
 
     $ctx7 = if ($Result.ctx7) { ($Result.ctx7 -join ', ') } else { 'n/a' }
     $today = Get-Date -Format 'yyyy-MM-dd'
@@ -423,7 +485,8 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
     git commit -m $commitMsg 2>&1 | Out-Null
     git push --force-with-lease origin $Branch 2>&1 | Out-Null
 
-    # 2. Open PR; let gh enable auto-merge with squash.
+    # 5. Open PR; let gh enable auto-merge with squash.
+    # $conflictResolvedFlag is injected dynamically at the end
     $prBody = @"
 ## Summary
 Automated delivery via Flow A (see [ADR-0012](docs/adr/0012-automated-two-flow-pipeline.md)).
@@ -436,7 +499,7 @@ Automated delivery via Flow A (see [ADR-0012](docs/adr/0012-automated-two-flow-p
 
 ## Reviewer warnings (non-blocking)
 $( ($Result.warnings | ForEach-Object { "- $_" }) -join "`n" )
-$closesLine
+$closesLine$conflictResolvedFlag
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 "@
@@ -458,10 +521,16 @@ $closesLine
         Write-Log 'WARN' "gh pr merge --auto rejected ($autoOut). Will poll for green CI then attempt direct squash."
     }
 
-    # 3. Poll until merged.
+    # 6. Poll until merged.
     for ($i = 0; $i -lt $POLL_PR_MAX; $i++) {
         $state = (gh pr view $prUrl --json state -q '.state').Trim()
-        if ($state -eq 'MERGED') { return $prUrl }
+        if ($state -eq 'MERGED') { 
+            # Local branch auto-prune to keep the orchestrator's git environment clean
+            git checkout dev 2>&1 | Out-Null
+            git branch -D $Branch 2>&1 | Out-Null
+            git remote prune origin 2>&1 | Out-Null
+            return $prUrl 
+        }
         if ((-not $autoEnabled) -and ($state -eq 'OPEN')) {
             # Without --auto, we must trigger the merge ourselves once CI is green.
             $rollup = (gh pr view $prUrl --json statusCheckRollup -q '.statusCheckRollup' 2>$null)
