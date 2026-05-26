@@ -92,10 +92,11 @@ function Write-Log {
     $ts = (Get-Date).ToString('o')
     $line = "$ts [$Level] $Message"
     Add-Content -Path $logPath -Value $line -Encoding utf8
-    if ($Level -in 'ERROR', 'WARN') {
-        Write-Host $line -ForegroundColor ($Level -eq 'ERROR' ? 'Red' : 'Yellow')
-    } else {
-        Write-Host $line
+    switch ($Level) {
+        'ERROR' { Write-Host $line -ForegroundColor Red }
+        'WARN'  { Write-Host $line -ForegroundColor Yellow }
+        'INFO'  { Write-Host $line -ForegroundColor Cyan }
+        default { Write-Host $line }
     }
 }
 
@@ -106,6 +107,38 @@ function Write-PipelineEvent {
     $null = New-Item -ItemType Directory -Force -Path (Split-Path $pipelineLog)
     $Fields['ts'] = (Get-Date).ToString('o')
     ($Fields | ConvertTo-Json -Compress) + '' | Add-Content -Path $pipelineLog -Encoding utf8
+}
+
+function Write-Step {
+    param(
+        [Parameter(Mandatory)] [string]$Event,
+        [Parameter(Mandatory)] [string]$FeatureId,
+        [string]$Message,
+        [hashtable]$Extra = @{}
+    )
+    if ($Message) { Write-Log 'INFO' "[$FeatureId] $Message" }
+    $payload = @{ event = $Event; id = $FeatureId } + $Extra
+    Write-PipelineEvent $payload
+}
+
+function Push-Branch {
+    param(
+        [Parameter(Mandatory)] [string]$Branch,
+        [Parameter(Mandatory)] [string]$FeatureId,
+        [string]$Phase,
+        [switch]$Force
+    )
+    $gitArgs = @('push', '-u', 'origin', $Branch)
+    if ($Force) { $gitArgs = @('push', '--force-with-lease', 'origin', $Branch) }
+    $out = & git @gitArgs 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Log 'WARN' "[$FeatureId] push ($Phase) failed: $out"
+        Write-Step 'branch_push_failed' $FeatureId -Extra @{ phase = $Phase; error = "$out" }
+    } else {
+        $sha = (git rev-parse --short HEAD).Trim()
+        Write-Step 'branch_pushed' $FeatureId "branch=$Branch phase=$Phase sha=$sha" `
+            -Extra @{ phase = $Phase; branch = $Branch; sha = $sha }
+    }
 }
 
 function Save-Session {
@@ -258,8 +291,11 @@ Execute these steps in order, delegating to the named subagents:
 1. **explorer agent** — gather context, call Context7, output a handoff
    (read-only, no commits).
 2. **implementer agent** — implement backend + frontend in one context.
-   Commit WIP after each logical change. Run `./mvnw verify` and
-   `npm run lint && npm test && npm run build`; only commit when green.
+   Commit WIP after each logical change. Backend tests:
+   `cd backend && ./mvnw verify` (use `mvnw.cmd verify` on Windows).
+   Frontend tests:
+   `cd frontend && npm run lint && npm test && npm run build`.
+   Only commit when green.
 3. **test-writer agent** — add Vitest + Testcontainers + Playwright + axe
    tests. Do NOT run them.
 4. **implementer agent** — run the new tests; fix failures; commit WIP.
@@ -381,11 +417,19 @@ operations after parsing your final JSON block.
 # --- Git + PR helpers ---------------------------------------------------------
 
 function Initialize-FeatureBranch {
-    param([string]$Slug)
+    param(
+        [Parameter(Mandatory)] [string]$Slug,
+        [Parameter(Mandatory)] [string]$FeatureId
+    )
     $branch = "feat/$Slug"
+    Write-Step 'branch_init_start' $FeatureId "Initializing branch from dev" `
+        -Extra @{ slug = $Slug; branch = $branch }
     git checkout dev 2>&1 | Out-Null
     git pull origin dev 2>&1 | Out-Null
     git checkout -b $branch 2>&1 | Out-Null
+    Push-Branch -Branch $branch -FeatureId $FeatureId -Phase 'created'
+    Write-Step 'branch_ready' $FeatureId "Branch checked out and pushed" `
+        -Extra @{ branch = $branch }
     return $branch
 }
 
@@ -394,13 +438,64 @@ function Complete-FeatureMerge {
         [Parameter(Mandatory)] [string]$Branch,
         [Parameter(Mandatory)] [string]$FeatureId,
         [Parameter(Mandatory)] [string]$Title,
-        [Parameter(Mandatory)] $Result   # hashtable from Invoke-FlowAClaude
+        [Parameter(Mandatory)] $Result
     )
 
-    # 1. Squash WIP commits on the branch into a single commit.
-    $mergeBase = (git merge-base $Branch dev).Trim()
-    git reset --soft $mergeBase 2>&1 | Out-Null
+    $mvnCmd      = Join-Path $repoRoot 'backend' 'mvnw.cmd'
+    $backendPom  = Join-Path $repoRoot 'backend' 'pom.xml'
+    $frontendDir = Join-Path $repoRoot 'frontend'
 
+    # 1. Push Claude's WIP commits immediately so progress is visible on origin.
+    Write-Step 'post_processing_start' $FeatureId "Beginning post-Claude steps" `
+        -Extra @{ branch = $Branch; verdict = $Result.verdict; rounds = $Result.rounds }
+    Push-Branch -Branch $Branch -FeatureId $FeatureId -Phase 'claude_wip'
+
+    # 2. Formatters (bug fix: correct path + .cmd wrapper + -f flag).
+    Write-Step 'formatter_start' $FeatureId "Running Spotless via backend/mvnw.cmd"
+    $spotlessOut = & $mvnCmd -f $backendPom spotless:apply 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        $spotlessOut | ForEach-Object { Write-Log 'ERROR' "[spotless] $_" }
+        Write-Step 'formatter_failed' $FeatureId "Spotless failed (exit $LASTEXITCODE)" `
+            -Extra @{ exit = $LASTEXITCODE }
+        throw "spotless:apply failed (exit $LASTEXITCODE)"
+    }
+    Write-Step 'formatter_done' $FeatureId "Spotless complete"
+
+    if (Test-Path (Join-Path $frontendDir 'package.json')) {
+        Write-Step 'lint_fix_start' $FeatureId "Running npm run lint -- --fix"
+        $lintOut = & npm --prefix $frontendDir run lint -- --fix 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Log 'WARN' "[$FeatureId] lint --fix returned $LASTEXITCODE (continuing)"
+        }
+        Write-Step 'lint_fix_done' $FeatureId "Lint --fix complete"
+    }
+
+    # 3. Commit formatter changes as a separate visible commit (if any).
+    $diff = git status --porcelain
+    if ($diff) {
+        git add -A 2>&1 | Out-Null
+        git commit -m "chore($($FeatureId.ToLower())): apply formatters" 2>&1 | Out-Null
+        Write-Step 'formatter_committed' $FeatureId "Formatter changes committed"
+        Push-Branch -Branch $Branch -FeatureId $FeatureId -Phase 'formatted'
+    } else {
+        Write-Step 'formatter_no_diff' $FeatureId "Formatters made no changes"
+    }
+
+    # 4. Zero-trust pre-flight compile check.
+    Write-Step 'compile_check_start' $FeatureId "Running mvnw clean test-compile"
+    $buildOut = & $mvnCmd -f $backendPom clean test-compile 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        $buildOut | Select-Object -Last 40 | ForEach-Object { Write-Log 'ERROR' "[compile] $_" }
+        Write-Step 'compile_check_failed' $FeatureId "Backend failed to compile (exit $LASTEXITCODE)" `
+            -Extra @{ exit = $LASTEXITCODE }
+        throw "Pre-flight compile failed after formatting. Fast-failing before PR."
+    }
+    Write-Step 'compile_check_done' $FeatureId "Backend compiles cleanly"
+
+    # 5. Fetch latest dev (catch upstream drift before opening PR).
+    git fetch origin dev 2>&1 | Out-Null
+
+    # 6. PR creation. Body keeps curated verdict / Context7 / warnings block.
     $ctx7 = if ($Result.ctx7) { ($Result.ctx7 -join ', ') } else { 'n/a' }
     $today = Get-Date -Format 'yyyy-MM-dd'
     $closesLine = ''
@@ -408,22 +503,6 @@ function Complete-FeatureMerge {
     if ($feature.source_issue) {
         $closesLine = "`n`nCloses #$($feature.source_issue)"
     }
-
-    $commitMsg = @"
-feat($($FeatureId.ToLower())): $Title
-
-Implemented by Flow A automation (ADR-0012) on $today.
-Reviewer verdict: $($Result.verdict) after $($Result.rounds) round(s).
-
-Verified against Context7 on ${today}: $ctx7.$closesLine
-
-Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
-"@
-
-    git commit -m $commitMsg 2>&1 | Out-Null
-    git push --force-with-lease origin $Branch 2>&1 | Out-Null
-
-    # 2. Open PR; let gh enable auto-merge with squash.
     $prBody = @"
 ## Summary
 Automated delivery via Flow A (see [ADR-0012](docs/adr/0012-automated-two-flow-pipeline.md)).
@@ -431,7 +510,7 @@ Automated delivery via Flow A (see [ADR-0012](docs/adr/0012-automated-two-flow-p
 - Feature: **$FeatureId** — $Title
 - Reviewer verdict: $($Result.verdict)
 - Reviewer rounds: $($Result.rounds)
-- Cost (this session): \$$($Result.cost_usd)
+- Cost (this session): `$$($Result.cost_usd)
 - Context7 verification (${today}): $ctx7
 
 ## Reviewer warnings (non-blocking)
@@ -441,42 +520,66 @@ $closesLine
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 "@
 
-    $prUrl = gh pr create --base dev --head $Branch `
+    Write-Step 'pr_create_start' $FeatureId "Opening PR base=dev head=$Branch"
+    $prUrl = (gh pr create --base dev --head $Branch `
         --title "feat($($FeatureId.ToLower())): $Title" `
-        --body $prBody 2>&1
-    if ($LASTEXITCODE -ne 0) { throw "gh pr create failed: $prUrl" }
+        --body $prBody 2>&1).Trim()
+    if ($LASTEXITCODE -ne 0) {
+        Write-Step 'pr_create_failed' $FeatureId "gh pr create failed" `
+            -Extra @{ error = "$prUrl" }
+        throw "gh pr create failed: $prUrl"
+    }
+    Write-Step 'pr_created' $FeatureId "PR opened: $prUrl" `
+        -Extra @{ pr_url = "$prUrl" }
 
-    # Enable auto-merge (preferred path: GitHub merges as soon as branch
-    # protection + required checks are satisfied).
+    # 7. Auto-merge arms GitHub to squash-merge as soon as checks pass.
     $autoOut = gh pr merge $prUrl --squash --auto 2>&1
-    $autoExit = $LASTEXITCODE
-    $autoEnabled = ($autoExit -eq 0)
-    if (-not $autoEnabled) {
-        # Fallback: --auto can be rejected if the repo doesn't allow auto-merge
-        # or if the PR already qualifies for direct merge. Log and fall through
-        # to polling — we'll attempt a plain --squash merge once CI is green.
-        Write-Log 'WARN' "gh pr merge --auto rejected ($autoOut). Will poll for green CI then attempt direct squash."
+    $autoEnabled = ($LASTEXITCODE -eq 0)
+    if ($autoEnabled) {
+        Write-Step 'pr_auto_merge_enabled' $FeatureId "Auto-merge armed"
+    } else {
+        Write-Log 'WARN' "[$FeatureId] auto-merge rejected ($autoOut). Will poll for green CI."
+        Write-Step 'pr_auto_merge_rejected' $FeatureId "Will fall back to manual squash on green" `
+            -Extra @{ reason = "$autoOut" }
     }
 
-    # 3. Poll until merged.
+    # 8. Poll with heartbeat every 5 cycles.
+    $pollStarted = Get-Date
     for ($i = 0; $i -lt $POLL_PR_MAX; $i++) {
         $state = (gh pr view $prUrl --json state -q '.state').Trim()
-        if ($state -eq 'MERGED') { return $prUrl }
+
+        if ($state -eq 'MERGED') {
+            Write-Step 'pr_merged' $FeatureId "PR merged after $i poll(s)" `
+                -Extra @{ pr_url = "$prUrl"; polls = $i; elapsed_sec = [int]((Get-Date) - $pollStarted).TotalSeconds }
+            return $prUrl
+        }
+        if ($state -eq 'CLOSED') {
+            Write-Step 'pr_closed_without_merge' $FeatureId "PR closed without merge"
+            throw "PR $prUrl closed without merge"
+        }
+
         if ((-not $autoEnabled) -and ($state -eq 'OPEN')) {
-            # Without --auto, we must trigger the merge ourselves once CI is green.
             $rollup = (gh pr view $prUrl --json statusCheckRollup -q '.statusCheckRollup' 2>$null)
             if ($rollup -and ($rollup -notmatch '"status":"IN_PROGRESS"|"conclusion":"FAILURE"|"conclusion":"TIMED_OUT"|"conclusion":"CANCELLED"')) {
+                Write-Step 'pr_manual_squash_attempt' $FeatureId "CI green — attempting direct squash merge"
                 $mergeOut = gh pr merge $prUrl --squash --delete-branch 2>&1
                 if ($LASTEXITCODE -eq 0) {
-                    Write-Log 'INFO' "Direct squash merge succeeded for $prUrl"
+                    Write-Step 'pr_manual_squash_ok' $FeatureId "Direct squash merge succeeded"
                 } else {
-                    Write-Log 'WARN' "Direct squash merge attempt failed: $mergeOut"
+                    Write-Log 'WARN' "[$FeatureId] Direct squash failed: $mergeOut"
                 }
             }
         }
-        if ($state -eq 'CLOSED') { throw "PR $prUrl closed without merge" }
+
+        if ($i -gt 0 -and ($i % 5) -eq 0) {
+            $elapsed = [int]((Get-Date) - $pollStarted).TotalSeconds
+            Write-Step 'pr_poll_heartbeat' $FeatureId "Polling PR (${i}/${POLL_PR_MAX}) state=$state elapsed=${elapsed}s" `
+                -Extra @{ poll = $i; state = "$state"; elapsed_sec = $elapsed }
+        }
+
         Start-Sleep -Seconds $POLL_PR_SECONDS
     }
+    Write-Step 'pr_poll_timeout' $FeatureId "PR did not merge within window"
     throw "PR $prUrl did not merge within $(($POLL_PR_MAX * $POLL_PR_SECONDS) / 60) minutes"
 }
 
@@ -548,8 +651,15 @@ try {
             Write-Log 'INFO' 'In Flow B preferential window (02:00-04:00). Sleeping until 04:01.'
             $now = Get-WarsawNow
             $resumeAt = $now.Date.AddHours(4).AddMinutes(1)
-            $secs = [Math]::Max(60, [int]($resumeAt - $now).TotalSeconds)
-            Start-Sleep -Seconds $secs
+            $pauseStarted = Get-Date
+            while ((Get-Date) -lt $resumeAt) {
+                $chunkSec = [Math]::Max(1, [Math]::Min(300, [int]($resumeAt - (Get-Date)).TotalSeconds))
+                Start-Sleep -Seconds $chunkSec
+                $elapsed = [int]((Get-Date) - $pauseStarted).TotalSeconds
+                $remaining = [Math]::Max(0, [int]($resumeAt - (Get-Date)).TotalSeconds)
+                Write-PipelineEvent @{ event = 'flowb_pause_heartbeat'; elapsed_sec = $elapsed; remaining_sec = $remaining }
+                Write-Log 'INFO' "Flow B pause: ${elapsed}s elapsed, ~${remaining}s remaining"
+            }
             continue
         }
 
@@ -603,7 +713,7 @@ try {
         }
 
         try {
-            $branch  = Initialize-FeatureBranch -Slug $slug
+            $branch  = Initialize-FeatureBranch -Slug $slug -FeatureId $featureId
             $drift   = Get-DriftAwareness
             $result  = $null
 
@@ -621,7 +731,16 @@ try {
                 } catch [System.TimeoutException] {
                     if ($_.Exception.Message -ne 'claude_quota_hit') { throw }
                     Write-Log 'WARN' "Pro quota hit; sleeping $($QUOTA_SLEEP_SEC / 60) minutes."
-                    Start-Sleep -Seconds $QUOTA_SLEEP_SEC
+                    $quotaStarted = Get-Date
+                    $quotaChunks = [Math]::Ceiling($QUOTA_SLEEP_SEC / 300)
+                    for ($qi = 0; $qi -lt $quotaChunks; $qi++) {
+                        $chunkSec = [Math]::Min(300, $QUOTA_SLEEP_SEC - ($qi * 300))
+                        Start-Sleep -Seconds $chunkSec
+                        $elapsed = [int]((Get-Date) - $quotaStarted).TotalSeconds
+                        $remaining = [Math]::Max(0, $QUOTA_SLEEP_SEC - $elapsed)
+                        Write-Step 'quota_wait_heartbeat' $featureId "Quota wait: ${elapsed}s elapsed, ~${remaining}s remaining" `
+                            -Extra @{ elapsed_sec = $elapsed; remaining_sec = $remaining }
+                    }
                 }
             }
 
@@ -692,17 +811,14 @@ try {
                 id    = $featureId
                 error = $errMsg
             }
+            # Write last_error immediately so it lands in features.json even if
+            # the process crashes before the status branch below completes.
+            Update-Feature $featureId @{ last_error = $errMsg }
             if (($feature.attempts ?? 0) -lt $RETRY_LIMIT) {
-                Update-Feature $featureId @{
-                    status     = 'queued'
-                    last_error = $errMsg
-                }
+                Update-Feature $featureId @{ status = 'queued' }
                 Write-Log 'INFO' "$featureId requeued for retry."
             } else {
-                Update-Feature $featureId @{
-                    status     = 'failed'
-                    last_error = $errMsg
-                }
+                Update-Feature $featureId @{ status = 'failed' }
                 Write-Log 'ERROR' "$featureId marked failed after retry limit."
             }
         }

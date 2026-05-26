@@ -100,9 +100,10 @@ function Start-StackForAudit {
     Write-Log 'INFO' 'Bringing up docker compose for pwa-auditor'
     Push-Location $repoRoot
     try {
-        docker compose -f docker-compose.yml up -d 2>&1 | Out-Null
+        $dcOut = docker compose -f docker-compose.yml up -d 2>&1
+        $dcOut | ForEach-Object { Write-Log 'INFO' "[docker-compose] $_" }
         if ($LASTEXITCODE -ne 0) {
-            throw "docker compose up failed"
+            throw "docker compose up failed (exit $LASTEXITCODE) — see [docker-compose] lines above"
         }
         # Naive health wait: poll up to 2 minutes for HTTP 200 on :4200.
         $deadline = (Get-Date).AddSeconds($DOCKER_HEALTH_WAIT_SEC)
@@ -122,7 +123,8 @@ function Stop-StackAfterAudit {
     Write-Log 'INFO' 'Tearing down docker compose'
     Push-Location $repoRoot
     try {
-        docker compose -f docker-compose.yml down 2>&1 | Out-Null
+        $dcOut = docker compose -f docker-compose.yml down 2>&1
+        $dcOut | ForEach-Object { Write-Log 'INFO' "[docker-compose] $_" }
     } finally {
         Pop-Location
     }
