@@ -1,0 +1,42 @@
+{
+  "common": {
+    "save": "Zapisz",
+    "cancel": "Anuluj",
+    "delete": "Usuń",
+    "loading": "Ładowanie...",
+    "search": "Szukaj"
+  },
+  "shell": {
+    "brand": "The-Dogs",
+    "language_switcher": {
+      "label": "Wybierz język",
+      "pl": "Polski",
+      "en": "English"
+    },
+    "nav": {
+      "logout": "Wyloguj",
+      "logout_label": "Wyloguj się"
+    },
+    "home": {
+      "welcome": "Witaj, {{email}}",
+      "coming_soon": "Funkcje zarządzania psami wkrótce."
+    }
+  },
+  "errors": {
+    "codes": {
+      "unknown": "Wystąpił błąd",
+      "unauthorized": "Brak autoryzacji",
+      "token_expired": "Sesja wygasła",
+      "invalid_token": "Nieprawidłowy token",
+      "forbidden": "Brak dostępu",
+      "not_found": "Nie znaleziono",
+      "conflict": "Konflikt",
+      "field_required": "To pole jest wymagane",
+      "field_too_short": "Wartość jest za krótka",
+      "field_too_long": "Wartość jest za długa",
+      "field_invalid_format": "Nieprawidłowy format"
+    }
+  },
+  "auth": {},
+  "dogs": {}
+}
