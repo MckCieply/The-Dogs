@@ -7,8 +7,10 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -52,6 +54,11 @@ public class AuthController {
     cookie.setMaxAge((int) tokenService.getRefreshTokenTtlSeconds());
     cookie.setAttribute("SameSite", "Strict");
     response.addCookie(cookie);
+  }
+
+  @GetMapping("/some-public-stub")
+  public ResponseEntity<Map<String, String>> publicStub() {
+    return ResponseEntity.ok(Map.of("status", "ok"));
   }
 
   private String extractRefreshCookie(HttpServletRequest request) {

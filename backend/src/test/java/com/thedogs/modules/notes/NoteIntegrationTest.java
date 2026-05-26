@@ -10,9 +10,10 @@ import com.thedogs.modules.clients.ClientRepository;
 import com.thedogs.modules.dogs.Dog;
 import com.thedogs.modules.dogs.DogRepository;
 import com.thedogs.modules.user.Role;
+import com.thedogs.modules.user.RoleRepository;
 import com.thedogs.modules.user.User;
 import com.thedogs.modules.user.UserRepository;
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,6 +33,7 @@ class NoteIntegrationTest {
 
   @Autowired private MockMvc mockMvc;
   @Autowired private UserRepository userRepository;
+  @Autowired private RoleRepository roleRepository;
   @Autowired private ClientRepository clientRepository;
   @Autowired private DogRepository dogRepository;
   @Autowired private NoteRepository noteRepository;
@@ -43,11 +45,12 @@ class NoteIntegrationTest {
 
   @BeforeEach
   void setUp() {
+    Role trainerRole = roleRepository.findByName("ROLE_TRAINER").orElseThrow();
     User trainer =
         User.builder()
             .email("trainer2@example.com")
             .passwordHash(passwordEncoder.encode("pass"))
-            .roles(List.of(Role.ROLE_TRAINER))
+            .roles(Set.of(trainerRole))
             .build();
     trainer = userRepository.save(trainer);
 
