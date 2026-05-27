@@ -1,0 +1,33 @@
+{
+  "common": {
+    "save": "Zapisz",
+    "cancel": "Anuluj",
+    "delete": "Usuń",
+    "loading": "Ładowanie...",
+    "search": "Szukaj"
+  },
+  "shell": {
+    "brand": "The Dogs",
+    "language_switcher": {
+      "label": "Zmień język",
+      "pl": "Polski",
+      "en": "English"
+    }
+  },
+  "errors": {
+    "codes": {
+      "unknown": "Wystąpił błąd",
+      "unauthorized": "Brak autoryzacji",
+      "token_expired": "Sesja wygasła",
+      "invalid_token": "Token jest nieprawidłowy",
+      "forbidden": "Brak dostępu",
+      "not_found": "Nie znaleziono",
+      "field_required": "To pole jest wymagane",
+      "field_too_short": "Wartość jest za krótka",
+      "field_too_long": "Wartość jest za długa",
+      "field_invalid_format": "Format jest nieprawidłowy"
+    }
+  },
+  "auth": {},
+  "dogs": {}
+}

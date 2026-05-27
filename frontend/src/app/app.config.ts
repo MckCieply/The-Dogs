@@ -1,5 +1,6 @@
 import {
   ApplicationConfig,
+  Provider,
   provideBrowserGlobalErrorListeners,
   isDevMode,
 } from '@angular/core';
@@ -13,6 +14,12 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { provideServiceWorker } from '@angular/service-worker';
 import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeuix/themes/aura';
+import {
+  provideTranslateService,
+  MissingTranslationHandler,
+} from '@ngx-translate/core';
+import { provideTranslateHttpLoader } from '@ngx-translate/http-loader';
+import { CustomMissingTranslationHandler } from './core/missing-translation.handler';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './interceptors/auth.interceptor';
@@ -36,6 +43,17 @@ export const appConfig: ApplicationConfig = {
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
       registrationStrategy: 'registerWhenStable:30000',
+    }),
+    provideTranslateService({
+      fallbackLang: 'pl',
+      loader: provideTranslateHttpLoader({
+        prefix: '/assets/i18n/',
+        suffix: '.json',
+      }) as Provider,
+      missingTranslationHandler: {
+        provide: MissingTranslationHandler,
+        useClass: CustomMissingTranslationHandler,
+      },
     }),
   ],
 };
