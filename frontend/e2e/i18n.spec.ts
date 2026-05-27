@@ -9,6 +9,25 @@ import AxeBuilder from '@axe-core/playwright';
  * reachable on any route — including /login, which is where unauthenticated
  * visitors land. All assertions below therefore target /login so no
  * authentication stub is required.
+ *
+ * ---------------------------------------------------------------------------
+ * AC-10 NOTE (Lighthouse — CI gate, not covered by automated test here):
+ * ---------------------------------------------------------------------------
+ * AC-10 requires Lighthouse PWA ≥ 90 and Performance ≥ 80 on the shell route
+ * after adding the i18n runtime. This is enforced as a Lighthouse CI step in
+ * .github/workflows/ci-frontend.yml and is NOT replicated as a Playwright
+ * test because Lighthouse requires a production build + stable server, which
+ * is out of scope for the dev-server-backed e2e suite. The structural
+ * underpinning (i18n bundles cached as a lazy SW asset group) is asserted in
+ * frontend/src/app/i18n/bundle-lazy-load.spec.ts.
+ *
+ * ---------------------------------------------------------------------------
+ * AC-12 NOTE (lint + test + build all exit 0 — process gate, not a test):
+ * ---------------------------------------------------------------------------
+ * AC-12 is verified by running `npm run lint && npm test -- --run &&
+ * npm run build` in CI (ci-frontend.yml). No automated test is added here
+ * because it is a meta-assertion on the process, not a behavioural assertion.
+ * ---------------------------------------------------------------------------
  */
 
 test.describe('I18N — language switcher smoke (AC-11)', () => {
@@ -164,5 +183,142 @@ test.describe('I18N — language switcher smoke (AC-11)', () => {
       critical,
       `Critical/serious axe violations on /login (EN):\n${JSON.stringify(critical, null, 2)}`,
     ).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// AC-2 / AC-3 / AC-4 — First-visit browser-language detection
+//
+// Playwright lets us override navigator.language via the locale context
+// option. The LanguageService reads navigator.language on first visit when
+// no localStorage preference is stored.
+// ---------------------------------------------------------------------------
+
+test.describe('I18N — first visit browser-language detection (AC-2 / AC-3 / AC-4)', () => {
+  // -------------------------------------------------------------------------
+  // AC-2: pl-PL browser → Polish UI
+  // -------------------------------------------------------------------------
+
+  test('first visit with navigator.language pl-PL shows Polish (AC-2)', async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext({
+      locale: 'pl-PL',
+      storageState: { cookies: [], origins: [] }, // no stored prefs
+    });
+    const page = await ctx.newPage();
+
+    await page.goto('/login');
+
+    // The PL button's translated label in Polish mode is "Polski"
+    const plButton = page.locator('button[aria-pressed]').nth(0);
+    await expect(plButton).toHaveText('Polski');
+    // html[lang] must be "pl"
+    await expect(page.locator('html')).toHaveAttribute('lang', 'pl');
+
+    await ctx.close();
+  });
+
+  // -------------------------------------------------------------------------
+  // AC-3: en-GB browser → English UI
+  // -------------------------------------------------------------------------
+
+  test('first visit with navigator.language en-GB shows English (AC-3)', async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext({
+      locale: 'en-GB',
+      storageState: { cookies: [], origins: [] },
+    });
+    const page = await ctx.newPage();
+
+    await page.goto('/login');
+
+    // The PL button's translated label in English mode is "Polish"
+    const plButton = page.locator('button[aria-pressed]').nth(0);
+    await expect(plButton).toHaveText('Polish');
+    // html[lang] must be "en"
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+
+    await ctx.close();
+  });
+
+  // -------------------------------------------------------------------------
+  // AC-4: de-DE browser → falls back to Polish
+  // -------------------------------------------------------------------------
+
+  test('first visit with navigator.language de-DE falls back to Polish (AC-4)', async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext({
+      locale: 'de-DE',
+      storageState: { cookies: [], origins: [] },
+    });
+    const page = await ctx.newPage();
+
+    await page.goto('/login');
+
+    // Fallback to Polish: PL button label is "Polski", html[lang] is "pl"
+    const plButton = page.locator('button[aria-pressed]').nth(0);
+    await expect(plButton).toHaveText('Polski');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'pl');
+
+    await ctx.close();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// AC-5 (extended) — localStorage value persists and is read back on reload
+//
+// The unit tests assert setItem is called. This e2e test asserts the full
+// round-trip: the value written to localStorage is read by LanguageService
+// on a fresh page load, producing the correct UI state.
+// ---------------------------------------------------------------------------
+
+test.describe('I18N — localStorage round-trip persistence (AC-5 extended)', () => {
+  test('language pre-stored as "en" in localStorage is applied on cold load without any toggle click', async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext({
+      storageState: { cookies: [], origins: [] },
+    });
+    const page = await ctx.newPage();
+
+    // Seed localStorage before the Angular app boots
+    await page.addInitScript(() => {
+      localStorage.setItem('thedogs.language', 'en');
+    });
+
+    await page.goto('/login');
+
+    // Without clicking any button the UI should already be in English
+    const plButton = page.locator('button[aria-pressed]').nth(0);
+    await expect(plButton).toHaveText('Polish');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+
+    await ctx.close();
+  });
+
+  test('language pre-stored as "pl" in localStorage overrides an en-GB browser language', async ({
+    browser,
+  }) => {
+    const ctx = await browser.newContext({
+      locale: 'en-GB',
+      storageState: { cookies: [], origins: [] },
+    });
+    const page = await ctx.newPage();
+
+    // Stored preference is "pl" — should win over the en-GB browser locale
+    await page.addInitScript(() => {
+      localStorage.setItem('thedogs.language', 'pl');
+    });
+
+    await page.goto('/login');
+
+    const plButton = page.locator('button[aria-pressed]').nth(0);
+    await expect(plButton).toHaveText('Polski');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'pl');
+
+    await ctx.close();
   });
 });
