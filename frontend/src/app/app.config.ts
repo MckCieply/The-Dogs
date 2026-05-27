@@ -1,6 +1,5 @@
 import {
   ApplicationConfig,
-  Provider,
   provideBrowserGlobalErrorListeners,
   isDevMode,
 } from '@angular/core';
@@ -46,14 +45,14 @@ export const appConfig: ApplicationConfig = {
     }),
     provideTranslateService({
       fallbackLang: 'pl',
-      loader: provideTranslateHttpLoader({
-        prefix: '/assets/i18n/',
-        suffix: '.json',
-      }) as Provider,
       missingTranslationHandler: {
         provide: MissingTranslationHandler,
         useClass: CustomMissingTranslationHandler,
       },
+    }),
+    ...provideTranslateHttpLoader({
+      prefix: '/assets/i18n/',
+      suffix: '.json',
     }),
   ],
 };
