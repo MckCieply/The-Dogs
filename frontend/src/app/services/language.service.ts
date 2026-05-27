@@ -14,8 +14,9 @@ export class LanguageService {
   }
 
   private init(): void {
-    const stored = localStorage.getItem(STORAGE_KEY) as 'pl' | 'en' | null;
-    const lang = stored ?? this.detectBrowserLanguage();
+    const stored = localStorage.getItem(STORAGE_KEY);
+    const validStored = (stored === 'pl' || stored === 'en') ? stored : null;
+    const lang = validStored ?? this.detectBrowserLanguage();
     this.applyLanguage(lang);
   }
 

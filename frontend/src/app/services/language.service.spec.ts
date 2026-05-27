@@ -96,6 +96,28 @@ describe('LanguageService', () => {
   });
 
   // -------------------------------------------------------------------------
+  // Initialization — invalid localStorage value (security guard)
+  // -------------------------------------------------------------------------
+
+  it('falls back to browser language when localStorage contains an invalid value (e.g. "<script>")', () => {
+    createService('<script>alert(1)</script>', 'en-US');
+
+    expect(service.language()).toBe('en');
+  });
+
+  it('falls back to browser language when localStorage contains an arbitrary string', () => {
+    createService('de', 'pl-PL');
+
+    expect(service.language()).toBe('pl');
+  });
+
+  it('falls back to project default "pl" when localStorage contains an invalid value and browser lang is unknown', () => {
+    createService('fr', 'de-DE');
+
+    expect(service.language()).toBe('pl');
+  });
+
+  // -------------------------------------------------------------------------
   // Initialization — browser language fallback (no localStorage)
   // -------------------------------------------------------------------------
 

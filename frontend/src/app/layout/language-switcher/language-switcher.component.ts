@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { LucideAngularModule, Globe } from 'lucide-angular';
 import { LanguageService } from '../../services/language.service';
@@ -6,6 +6,7 @@ import { LanguageService } from '../../services/language.service';
 @Component({
   selector: 'app-language-switcher',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslateModule, LucideAngularModule],
   template: `
     <div
