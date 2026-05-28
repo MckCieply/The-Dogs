@@ -129,7 +129,7 @@ Unregister-ScheduledTask -TaskName 'the-dogs-flow-b' -Confirm:$false
 
 1. Acquires `orchestrator.lock`. Waits if Flow A is mid-feature.
 2. `git checkout dev && git pull`. Captures the dev SHA as the future `flow-b-<N>` anchor.
-3. `docker compose up -d`; polls `http://localhost:4200` until healthy (max 2 min).
+3. `docker compose up -d`; polls `http://localhost:80` until healthy (max 2 min).
 4. Creates branch `chore/flow-b-<YYYY-MM-DD>` (for docs-writer commits).
 5. Calls `claude -p` once with a prompt walking through:
    - security-reviewer → pwa-auditor → docs-writer
@@ -203,7 +203,7 @@ Without those, `--auto` fails immediately. If you don't have CI workflows yet, d
 
 ### Docker compose isn't healthy in time
 
-`run-flow-b.ps1` polls `http://localhost:4200` for 2 minutes. If the stack needs longer (cold cache, fresh `npm install`), bump `DOCKER_HEALTH_WAIT_SEC` at the top of the script.
+`run-flow-b.ps1` polls `http://localhost:80` for 2 minutes. If the stack needs longer (cold cache, fresh `npm install`), bump `DOCKER_HEALTH_WAIT_SEC` at the top of the script.
 
 ### Pro quota burned faster than expected
 

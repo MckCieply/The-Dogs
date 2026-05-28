@@ -105,11 +105,12 @@ function Start-StackForAudit {
         if ($LASTEXITCODE -ne 0) {
             throw "docker compose up failed (exit $LASTEXITCODE) — see [docker-compose] lines above"
         }
-        # Naive health wait: poll up to 2 minutes for HTTP 200 on :4200.
+        # Health wait: poll up to 2 minutes for HTTP 200 on :80 (nginx inside Docker).
+        # Port 4200 is the Angular dev-server; the composed stack serves on port 80.
         $deadline = (Get-Date).AddSeconds($DOCKER_HEALTH_WAIT_SEC)
         while ((Get-Date) -lt $deadline) {
             try {
-                $r = Invoke-WebRequest -Uri 'http://localhost:4200' -TimeoutSec 5 -UseBasicParsing
+                $r = Invoke-WebRequest -Uri 'http://localhost:80' -TimeoutSec 5 -UseBasicParsing
                 if ($r.StatusCode -eq 200) { return }
             } catch { Start-Sleep -Seconds 3 }
         }
@@ -162,7 +163,7 @@ Execute these steps in order, delegating to the named subagents:
    kind:security and severity:critical|high|medium|low.
 
 2. **pwa-auditor agent** — the orchestrator already brought up
-   docker compose; the frontend is live at http://localhost:4200.
+   docker compose; the frontend is live at http://localhost:80.
    Verify manifest, service worker, offline, Lighthouse, axe, install
    prompt on routes touched in the diff. Open issues with labels
    kind:pwa and severity:*.
