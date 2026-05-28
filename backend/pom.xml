@@ -133,6 +133,13 @@
       <scope>runtime</scope>
     </dependency>
 
+    <!-- Bucket4j — in-memory rate limiting (AUTH-02) -->
+    <dependency>
+      <groupId>com.bucket4j</groupId>
+      <artifactId>bucket4j-core</artifactId>
+      <version>8.10.1</version>
+    </dependency>
+
     <!-- Test dependencies -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
