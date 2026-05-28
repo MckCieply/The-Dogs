@@ -30,5 +30,8 @@ The `field` key is present only for validation errors.
 | `field_too_short` | 400 | Field value is shorter than the minimum allowed length | AUTH-01 |
 | `field_too_long` | 400 | Field value exceeds the maximum allowed length | AUTH-01 |
 | `field_invalid_format` | 400 | Field value does not match the expected format | AUTH-01 |
+| `bad_credentials` | 401 | Email address is unknown or the password is incorrect (unified to prevent user enumeration) | AUTH-02 |
+| `account_disabled` | 401 | User account exists but has been disabled by an admin | AUTH-02 |
+| `too_many_attempts` | 429 | Too many failed login attempts from this IP; `Retry-After` header indicates seconds to wait | AUTH-02 |
 
 Later features must append new codes to this table with their feature slug in the "Registered by" column. The reviewer enforces this.
