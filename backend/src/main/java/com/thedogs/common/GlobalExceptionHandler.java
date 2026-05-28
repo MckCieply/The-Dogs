@@ -1,11 +1,15 @@
 package com.thedogs.common;
 
+import com.thedogs.modules.auth.AccountDisabledException;
+import com.thedogs.modules.auth.TooManyLoginAttemptsException;
 import jakarta.persistence.EntityNotFoundException;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
@@ -78,8 +82,30 @@ public class GlobalExceptionHandler {
     problem.setType(URI.create(BASE_TYPE + "unauthorized"));
     problem.setTitle("Unauthorized");
     problem.setDetail("Invalid credentials");
-    problem.setProperty("errors", List.of(Map.of("code", "unauthorized")));
+    problem.setProperty("errors", List.of(Map.of("code", "bad_credentials")));
     return problem;
+  }
+
+  @ExceptionHandler(AccountDisabledException.class)
+  public ProblemDetail handleAccountDisabled(AccountDisabledException ex) {
+    ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
+    problem.setType(URI.create(BASE_TYPE + "unauthorized"));
+    problem.setTitle("Unauthorized");
+    problem.setDetail("Account is disabled");
+    problem.setProperty("errors", List.of(Map.of("code", "account_disabled")));
+    return problem;
+  }
+
+  @ExceptionHandler(TooManyLoginAttemptsException.class)
+  public ResponseEntity<ProblemDetail> handleTooManyAttempts(TooManyLoginAttemptsException ex) {
+    ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.TOO_MANY_REQUESTS);
+    problem.setType(URI.create(BASE_TYPE + "too-many-requests"));
+    problem.setTitle("Too Many Requests");
+    problem.setDetail("Too many login attempts. Please try again later.");
+    problem.setProperty("errors", List.of(Map.of("code", "too_many_attempts")));
+    HttpHeaders headers = new HttpHeaders();
+    headers.set(HttpHeaders.RETRY_AFTER, String.valueOf(ex.getRetryAfterSeconds()));
+    return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).headers(headers).body(problem);
   }
 
   @ExceptionHandler(AccessDeniedException.class)
