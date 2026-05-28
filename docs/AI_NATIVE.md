@@ -49,7 +49,9 @@ The human (harness engineer) plays Product Manager + final approver: writes spec
 
 ### 2.2 Two-flow pipeline
 
-Under [ADR-0012](adr/0012-automated-two-flow-pipeline.md) the team runs **fully automated**: `run-features.ps1` drains `features.json` for Flow A; Windows Task Scheduler triggers `run-flow-b.ps1` Mon/Wed/Fri at 02:00 for Flow B. The human never sees an individual feature PR — only the Flow B aggregate PR and any `status:approved` issues to triage.
+Under [ADR-0012](adr/0012-automated-two-flow-pipeline.md) the team runs **fully automated**: `run-features.ps1` drains `features.json` for Flow A; Windows Task Scheduler (or `start-orchestrator.ps1`) triggers `run-flow-b.ps1` Mon/Wed/Fri at 02:00 for Flow B. The human never sees an individual feature PR — only the Flow B aggregate PR and any `status:approved` issues to triage.
+
+`start-orchestrator.ps1` is a persistent wrapper: it loops `run-features.ps1` indefinitely, sleeping 10 minutes between runs when the queue is drained, and restarting automatically after script errors. Intended to be launched at system startup via Task Scheduler so Flow A stays live without a terminal session.
 
 ```
 ┌─ Flow A — per feature (run-features.ps1) ─────────────────────────────┐
@@ -87,10 +89,15 @@ Under [ADR-0012](adr/0012-automated-two-flow-pipeline.md) the team runs **fully 
 └───────────────────────────────────────────────────────────────────────┘
 ```
 
+**Orchestrator observability:**
+
+`run-features.ps1` emits structured events to `logs/pipeline.jsonl` (one JSON object per line) and human-readable lines to `orchestrator.log`. Each Claude invocation result includes token usage fields: `input_tokens`, `output_tokens`, `cache_write_tokens` (prompt cache write), and `cache_read_tokens` (prompt cache read). This allows cost tracking per feature and per pipeline run. The log directory and `orchestrator.lock` live at the repo root and are `.gitignore`d.
+
 **Throughput caps (Flow A, per ADR-0012):**
 
 - Hard daily cap: **3 features / calendar day** (Europe/Warsaw). Reaching the cap pauses Flow A until next local midnight.
 - Defensive per-window cap: **10 features** between Flow B runs. Hitting this triggers Flow B ad-hoc (adaptive trigger).
+- Quota handling: on Claude Pro quota exhaustion (detected by exit message patterns matching `rate limit|quota|429|usage limit`), Flow A sleeps in 1-hour increments until the quota resets.
 
 **Issue lifecycle (Flow B → features.json, per ADR-0012):**
 
@@ -217,6 +224,9 @@ Tracked here until each becomes an ADR. Cross-referenced in [ARCHITECTURE.md](AR
 | 15 | OWASP NVD enforcement   | ⏳ Wanted — `ci-backend.yml` + `dependency-scan.yml` are wired for OWASP `dependency-check-maven`, but the `NVD_API_KEY` repo secret is not yet provisioned. Until then, OWASP runs in best-effort mode (`continue-on-error`); CVE finding accuracy degrades under NVD throttling. **Action:** request a free key at <https://nvd.nist.gov/developers/request-an-api-key> and `gh secret set NVD_API_KEY --body <key>`. |
 | 16 | Feature ID schema       | ✅ Decided 2026-05-22 — **dual scheme.** Issue-promoted features stay on `F-NNN` (auto-incremented via `scripts/promote-issues.ps1` from `next_id`). Spec-PR-promoted features use **thematic namespaced IDs**: `AUTH-NN`, `I18N-NN`, `DOGS-NN`, `NOTES-NN`, `SCHED-NN`, etc. The two pools coexist in `features.json`; the orchestrator treats `id` as an opaque string. Rationale: when reading the queue, namespaced IDs reveal the feature's domain at a glance; `F-NNN` retains a stable lineage for anything that originated as a labelled GitHub issue. **Convention:** namespace prefix matches the relevant ADR or domain area, two-digit zero-padded counter, hyphen separator. |
 | 17 | Password reset without SMTP | ✅ Decided — admin-retrieved token flow ([ADR-0013](adr/0013-password-reset-without-smtp.md)). Migrates to email delivery without API contract changes when SMTP is provisioned. |
+| 18 | Backend formatter JDK split | ⏳ Proposed — Spotless/google-java-format runs under JDK 21; compilation under JDK 25. Implicit in CI changes from flow-b-1. Needs owner sign-off ([ADR-0014](adr/0014-jdk-split-spotless-jdk21-compile-jdk25.md), status: Proposed). |
+| 19 | Frontend unit test runner   | ⏳ Proposed — switched from `ng test` (Karma) to Vitest 4. Implicit in CI changes from flow-b-1. Needs owner sign-off ([ADR-0015](adr/0015-vitest-over-karma.md), status: Proposed). |
+| 20 | JWT signing algorithm       | ⏳ Proposed — HS256 with symmetric secret. ADR-0003 left this open as "HS256 or RS256". AUTH-01 implementation chose HS256. Needs owner sign-off ([ADR-0016](adr/0016-hs256-symmetric-jwt.md), status: Proposed). |
 
 ## 9. Getting Started (after scaffold skills run)
 

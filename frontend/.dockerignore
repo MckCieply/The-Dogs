@@ -1,0 +1,23 @@
+# Dependencies — installed fresh inside the container by npm ci
+node_modules
+
+# Angular build cache and output — built fresh inside the container
+.angular
+dist
+
+# Test artefacts
+playwright-report
+test-results
+
+# Development-only files not needed in the image
+*.md
+.editorconfig
+.prettierrc
+proxy.conf.json
+vitest.config.ts
+playwright.config.ts
+e2e
+
+# Git
+.git
+.gitignore
