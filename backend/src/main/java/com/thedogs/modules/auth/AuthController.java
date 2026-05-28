@@ -7,10 +7,8 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,15 +19,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
 
-  private static final String REFRESH_COOKIE_NAME = "refreshToken";
+  private static final String REFRESH_COOKIE_NAME = "refresh_token";
 
   private final AuthService authService;
   private final TokenService tokenService;
 
   @PostMapping("/login")
   public ResponseEntity<LoginResponse> login(
-      @Valid @RequestBody LoginRequest request, HttpServletResponse response) {
-    AuthService.LoginResult result = authService.login(request);
+      @Valid @RequestBody LoginRequest request,
+      HttpServletRequest httpRequest,
+      HttpServletResponse response) {
+    AuthService.LoginResult result = authService.login(request, httpRequest);
     setRefreshCookie(response, result.refreshToken());
     return ResponseEntity.ok(result.loginResponse());
   }
@@ -50,15 +50,10 @@ public class AuthController {
     Cookie cookie = new Cookie(REFRESH_COOKIE_NAME, token);
     cookie.setHttpOnly(true);
     cookie.setSecure(true);
-    cookie.setPath("/api/v1/auth/refresh");
+    cookie.setPath("/api/v1/auth");
     cookie.setMaxAge((int) tokenService.getRefreshTokenTtlSeconds());
     cookie.setAttribute("SameSite", "Strict");
     response.addCookie(cookie);
-  }
-
-  @GetMapping("/some-public-stub")
-  public ResponseEntity<Map<String, String>> publicStub() {
-    return ResponseEntity.ok(Map.of("status", "ok"));
   }
 
   private String extractRefreshCookie(HttpServletRequest request) {

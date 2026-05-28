@@ -23,15 +23,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Testcontainers + MockMvc integration tests for the /api/v1/me/ping smoke endpoint and the
- * /api/v1/auth/some-public-stub public endpoint (AC-1 through AC-5 of AUTH-01).
+ * Testcontainers + MockMvc integration tests for the /api/v1/me/ping smoke endpoint (AC-1 through
+ * AC-4 of AUTH-01). The /api/v1/auth/some-public-stub endpoint was removed in AUTH-02.
  *
  * <p>The Testcontainers PostgreSQL instance is started automatically via the TC JDBC URL in
  * application-test.yml. No explicit @Testcontainers / @Container annotation is needed here because
@@ -165,23 +164,6 @@ class PingSmokingIT {
         .andExpect(status().isUnauthorized())
         .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
         .andExpect(jsonPath("$.errors[0].code").value("invalid_token"));
-  }
-
-  // ---------------------------------------------------------------------------
-  // AC-5: GET /api/v1/auth/some-public-stub without Authorization → 200 with status:ok
-  // ---------------------------------------------------------------------------
-
-  @Test
-  void publicStub_withoutAuthorizationHeader_returns200() throws Exception {
-    mockMvc.perform(get("/api/v1/auth/some-public-stub")).andExpect(status().isOk());
-  }
-
-  @Test
-  void publicStub_withoutAuthorizationHeader_responseBodyContainsStatusOk() throws Exception {
-    mockMvc
-        .perform(get("/api/v1/auth/some-public-stub").accept(MediaType.APPLICATION_JSON))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.status").value("ok"));
   }
 
   // ---------------------------------------------------------------------------
