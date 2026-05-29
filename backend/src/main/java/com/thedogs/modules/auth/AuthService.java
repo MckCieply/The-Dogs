@@ -110,7 +110,7 @@ public class AuthService {
     refreshTokenStore.store(refreshToken, user.getId());
 
     return new LoginResult(
-        new LoginResponse(accessToken, tokenService.getAccessTokenTtlSeconds()), refreshToken);
+        LoginResponse.bearer(accessToken, tokenService.getAccessTokenTtlSeconds()), refreshToken);
   }
 
   @Transactional

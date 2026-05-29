@@ -64,6 +64,17 @@ public class LoginRateLimiter {
   }
 
   /**
+   * Clears all rate-limit buckets. Intended only for use in integration test {@code @BeforeEach}
+   * setup to reset shared in-memory state between test methods that share the same Spring
+   * application context.
+   *
+   * <p>Package-private so it is not accidentally called from production code.
+   */
+  void clearAll() {
+    buckets.clear();
+  }
+
+  /**
    * Returns the number of seconds until the next token becomes available for the given IP.
    *
    * @param ip raw IP string
