@@ -105,7 +105,8 @@ class AuthServiceLoginTest {
     when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(enabledUser));
     when(passwordEncoder.matches(TEST_PASSWORD, enabledUser.getPasswordHash())).thenReturn(true);
 
-    AuthService.LoginResult result = authService.login(new LoginRequest(TEST_EMAIL, TEST_PASSWORD), httpRequest);
+    AuthService.LoginResult result =
+        authService.login(new LoginRequest(TEST_EMAIL, TEST_PASSWORD), httpRequest);
 
     assertThat(result).isNotNull();
     assertThat(result.loginResponse()).isNotNull();
@@ -117,7 +118,8 @@ class AuthServiceLoginTest {
     when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(enabledUser));
     when(passwordEncoder.matches(TEST_PASSWORD, enabledUser.getPasswordHash())).thenReturn(true);
 
-    AuthService.LoginResult result = authService.login(new LoginRequest(TEST_EMAIL, TEST_PASSWORD), httpRequest);
+    AuthService.LoginResult result =
+        authService.login(new LoginRequest(TEST_EMAIL, TEST_PASSWORD), httpRequest);
 
     assertThat(result.refreshToken()).isEqualTo(REFRESH_TOKEN);
   }
@@ -209,7 +211,9 @@ class AuthServiceLoginTest {
     when(passwordEncoder.matches(anyString(), eq(DUMMY_HASH))).thenReturn(false);
 
     assertThatThrownBy(
-            () -> authService.login(new LoginRequest("unknown@example.com", TEST_PASSWORD), httpRequest))
+            () ->
+                authService.login(
+                    new LoginRequest("unknown@example.com", TEST_PASSWORD), httpRequest))
         .isInstanceOf(BadCredentialsException.class);
   }
 
@@ -327,9 +331,7 @@ class AuthServiceLoginTest {
 
   @Test
   void login_whenRateLimitAlreadyExceeded_propagatesTooManyLoginAttemptsException() {
-    doThrow(new TooManyLoginAttemptsException(540L))
-        .when(rateLimiter)
-        .checkLimit(TEST_IP);
+    doThrow(new TooManyLoginAttemptsException(540L)).when(rateLimiter).checkLimit(TEST_IP);
 
     assertThatThrownBy(
             () -> authService.login(new LoginRequest(TEST_EMAIL, TEST_PASSWORD), httpRequest))
@@ -340,9 +342,7 @@ class AuthServiceLoginTest {
 
   @Test
   void login_whenRateLimitAlreadyExceeded_doesNotQueryDatabase() {
-    doThrow(new TooManyLoginAttemptsException(540L))
-        .when(rateLimiter)
-        .checkLimit(TEST_IP);
+    doThrow(new TooManyLoginAttemptsException(540L)).when(rateLimiter).checkLimit(TEST_IP);
 
     try {
       authService.login(new LoginRequest(TEST_EMAIL, TEST_PASSWORD), httpRequest);
@@ -393,7 +393,8 @@ class AuthServiceLoginTest {
         .isEqualTo(BadCredentialsException.class);
 
     assertThat(unknownEmailExMessage)
-        .as("Unknown email and wrong password must produce the same exception message (no distinguishing info)")
+        .as(
+            "Unknown email and wrong password must produce the same exception message (no distinguishing info)")
         .isEqualTo(wrongPasswordExMessage);
   }
 
