@@ -10,9 +10,8 @@ import org.springframework.stereotype.Service;
 /**
  * In-memory rate limiter for failed login attempts, keyed by client IP address.
  *
- * <p>Policy: 5 failed attempts per 15 minutes, refilled all-at-once after the interval
- * (intervally, not gradually). An IP that exhausts all tokens is blocked until the 15-minute window
- * resets.
+ * <p>Policy: 5 failed attempts per 15 minutes, refilled all-at-once after the interval (intervally,
+ * not gradually). An IP that exhausts all tokens is blocked until the 15-minute window resets.
  *
  * <p>NOTE: in-memory single-node only — replace with Redis/Postgres shared store for multi-instance
  * (AUTH-03+)
@@ -34,10 +33,7 @@ public class LoginRateLimiter {
     // Intervally refill: all MAX_ATTEMPTS tokens are restored together after WINDOW elapses,
     // not gradually. This matches the "5 failures per 15 minutes" intent.
     Bandwidth limit =
-        Bandwidth.builder()
-            .capacity(MAX_ATTEMPTS)
-            .refillIntervally(MAX_ATTEMPTS, WINDOW)
-            .build();
+        Bandwidth.builder().capacity(MAX_ATTEMPTS).refillIntervally(MAX_ATTEMPTS, WINDOW).build();
     return Bucket.builder().addLimit(limit).build();
   }
 

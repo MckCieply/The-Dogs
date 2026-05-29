@@ -62,6 +62,38 @@ class LoginRateLimiterTest {
   }
 
   // ---------------------------------------------------------------------------
+  // Successful login path: if recordFailure() is never called (as in a successful
+  // auth flow), the bucket tokens remain untouched and subsequent checks still pass.
+  // ---------------------------------------------------------------------------
+
+  @Test
+  void checkLimit_whenRecordFailureNeverCalled_bucketRemainsFullAndSubsequentChecksPass() {
+    // Simulate 4 prior failed attempts (tokens consumed but not exhausted)
+    String ip = "10.0.0.5";
+    for (int i = 0; i < 4; i++) {
+      rateLimiter.recordFailure(ip);
+    }
+
+    // Simulate a successful login for the same IP: checkLimit() passes, recordFailure() is NOT
+    // called.
+    assertThatCode(() -> rateLimiter.checkLimit(ip))
+        .as("checkLimit must not throw after 4 failures (bucket still has 1 token)")
+        .doesNotThrowAnyException();
+
+    // Because recordFailure was skipped (successful login), the remaining token is still present.
+    // A subsequent checkLimit() call must still pass (token was not consumed by the success path).
+    assertThatCode(() -> rateLimiter.checkLimit(ip))
+        .as("checkLimit must still pass after a successful auth that skipped recordFailure")
+        .doesNotThrowAnyException();
+
+    // Explicitly: getRetryAfterSeconds must still return 0 (tokens available).
+    assertThat(rateLimiter.getRetryAfterSeconds(ip))
+        .as(
+            "retryAfterSeconds must be 0 when a successful login left the remaining token unconsumed")
+        .isEqualTo(0L);
+  }
+
+  // ---------------------------------------------------------------------------
   // 6th attempt (after 5 failures already recorded): checkLimit() throws
   // ---------------------------------------------------------------------------
 

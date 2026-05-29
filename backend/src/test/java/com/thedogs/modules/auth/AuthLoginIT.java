@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.crypto.SecretKey;
+import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -170,10 +171,7 @@ class AuthLoginIT {
     ResponseEntity<String> response = doLogin(TRAINER_EMAIL, TRAINER_PASSWORD);
 
     List<String> setCookieHeaders = response.getHeaders().get(HttpHeaders.SET_COOKIE);
-    assertThat(setCookieHeaders)
-        .as("Set-Cookie header must be present")
-        .isNotNull()
-        .isNotEmpty();
+    assertThat(setCookieHeaders).as("Set-Cookie header must be present").isNotNull().isNotEmpty();
 
     String refreshCookie =
         setCookieHeaders.stream()
@@ -287,11 +285,19 @@ class AuthLoginIT {
     ResponseEntity<String> wrongPasswordResp = doLogin(TRAINER_EMAIL, "wrong-password-ac3");
 
     String unknownEmailCode =
-        objectMapper.readTree(unknownEmailResp.getBody())
-            .path("errors").get(0).path("code").asText();
+        objectMapper
+            .readTree(unknownEmailResp.getBody())
+            .path("errors")
+            .get(0)
+            .path("code")
+            .asText();
     String wrongPasswordCode =
-        objectMapper.readTree(wrongPasswordResp.getBody())
-            .path("errors").get(0).path("code").asText();
+        objectMapper
+            .readTree(wrongPasswordResp.getBody())
+            .path("errors")
+            .get(0)
+            .path("code")
+            .asText();
 
     assertThat(unknownEmailCode)
         .as("Unknown email and wrong password must return the same error code (anti-enumeration)")
@@ -462,9 +468,7 @@ class AuthLoginIT {
     long iat = claims.getIssuedAt().getTime() / 1000L;
     long exp = claims.getExpiration().getTime() / 1000L;
 
-    assertThat(exp - iat)
-        .as("JWT exp - iat must equal 900 seconds (15 minutes)")
-        .isEqualTo(900L);
+    assertThat(exp - iat).as("JWT exp - iat must equal 900 seconds (15 minutes)").isEqualTo(900L);
   }
 
   @Test
@@ -496,6 +500,94 @@ class AuthLoginIT {
     // Must parse as UUID without throwing
     java.util.UUID parsedSub = java.util.UUID.fromString(sub);
     assertThat(parsedSub).as("JWT sub must be a valid UUID").isNotNull();
+  }
+
+  @Test
+  void login_withValidCredentials_jwtRolesClaimExactlyMatchesUserRolesStoredInDb()
+      throws Exception {
+    // Load the roles that are actually persisted for the test user so we can compare
+    // what the JWT carries against the ground truth from user_role.
+    User trainer =
+        userRepository
+            .findByEmail(TRAINER_EMAIL)
+            .orElseThrow(() -> new AssertionError("Test user not found in DB"));
+    Set<String> dbRoles =
+        trainer.getRoles().stream().map(Role::getName).collect(Collectors.toSet());
+
+    ResponseEntity<String> response = doLogin(TRAINER_EMAIL, TRAINER_PASSWORD);
+    JsonNode responseBody = objectMapper.readTree(response.getBody());
+    String accessToken = responseBody.path("accessToken").asText();
+    assertThat(accessToken).isNotBlank();
+
+    Claims claims = parseJwt(accessToken);
+    @SuppressWarnings("unchecked")
+    List<String> jwtRoles = claims.get("roles", List.class);
+
+    assertThat(jwtRoles)
+        .as(
+            "JWT roles claim must contain exactly the roles stored in user_role — no extras, no omissions")
+        .isNotNull()
+        .containsExactlyInAnyOrderElementsOf(dbRoles);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Cookie attribute: Path is scoped to /api/v1/auth (not globally accessible)
+  // ---------------------------------------------------------------------------
+
+  @Test
+  void login_withValidCredentials_refreshCookieHasPathApiV1Auth() {
+    ResponseEntity<String> response = doLogin(TRAINER_EMAIL, TRAINER_PASSWORD);
+
+    List<String> setCookieHeaders = response.getHeaders().get(HttpHeaders.SET_COOKIE);
+    assertThat(setCookieHeaders).isNotNull();
+
+    String refreshCookie =
+        setCookieHeaders.stream()
+            .filter(h -> h.startsWith("refresh_token="))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("refresh_token cookie not found"));
+
+    assertThat(refreshCookie)
+        .as("refresh_token cookie Path must be /api/v1/auth")
+        .containsIgnoringCase("Path=/api/v1/auth");
+  }
+
+  // ---------------------------------------------------------------------------
+  // Cookie attributes: all four security attributes present in one assertion
+  // (HttpOnly + Secure + SameSite=Strict + Path=/api/v1/auth)
+  // ---------------------------------------------------------------------------
+
+  @Test
+  void login_withValidCredentials_refreshCookieHasAllRequiredSecurityAttributes() {
+    ResponseEntity<String> response = doLogin(TRAINER_EMAIL, TRAINER_PASSWORD);
+
+    List<String> setCookieHeaders = response.getHeaders().get(HttpHeaders.SET_COOKIE);
+    assertThat(setCookieHeaders).isNotNull();
+
+    String refreshCookie =
+        setCookieHeaders.stream()
+            .filter(h -> h.startsWith("refresh_token="))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("refresh_token cookie not found"));
+
+    SoftAssertions softly = new SoftAssertions();
+    softly
+        .assertThat(refreshCookie)
+        .as("refresh_token cookie must carry HttpOnly")
+        .containsIgnoringCase("HttpOnly");
+    softly
+        .assertThat(refreshCookie)
+        .as("refresh_token cookie must carry Secure")
+        .containsIgnoringCase("Secure");
+    softly
+        .assertThat(refreshCookie)
+        .as("refresh_token cookie must carry SameSite=Strict")
+        .containsIgnoringCase("SameSite=Strict");
+    softly
+        .assertThat(refreshCookie)
+        .as("refresh_token cookie must carry Path=/api/v1/auth")
+        .containsIgnoringCase("Path=/api/v1/auth");
+    softly.assertAll();
   }
 
   // ---------------------------------------------------------------------------
