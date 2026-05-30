@@ -4,6 +4,7 @@ import com.thedogs.modules.auth.TokenService;
 import javax.crypto.SecretKey;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -81,11 +82,11 @@ public class SecurityConfig {
             auth ->
                 auth
                     // Add explicit paths here; never use a wildcard for /auth/** without review
-                    .requestMatchers("/api/v1/auth/login")
+                    .requestMatchers(HttpMethod.POST, "/api/v1/auth/login")
                     .permitAll()
-                    .requestMatchers("/api/v1/auth/refresh")
+                    .requestMatchers(HttpMethod.POST, "/api/v1/auth/refresh")
                     .permitAll()
-                    .requestMatchers("/api/v1/auth/logout")
+                    .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout")
                     .permitAll()
                     .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
                     .permitAll()

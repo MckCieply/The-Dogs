@@ -26,7 +26,6 @@ public class AuthController {
   private final AuthService authService;
   private final TokenService tokenService;
   private final RefreshTokenService refreshTokenService;
-  private final RefreshTokenRepository refreshTokenRepository;
 
   @PostMapping("/login")
   public ResponseEntity<LoginResponse> login(
@@ -59,11 +58,7 @@ public class AuthController {
     String cookieValue = extractRefreshCookie(request);
 
     if (cookieValue != null) {
-      // Hash the value and look up any row (even used/revoked) to get the family id
-      String hash = RefreshTokenService.sha256Hex(cookieValue);
-      refreshTokenRepository
-          .findByTokenHash(hash)
-          .ifPresent(token -> refreshTokenService.revokeFamily(token.getFamilyId()));
+      refreshTokenService.logout(cookieValue);
     }
 
     // Always clear the cookie regardless of whether a token was found

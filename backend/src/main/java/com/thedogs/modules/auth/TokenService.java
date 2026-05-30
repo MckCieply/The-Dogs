@@ -60,7 +60,6 @@ public class TokenService {
     byte[] bytes = new byte[32]; // 256 bits
     SECURE_RANDOM.nextBytes(bytes);
     return HexFormat.of().formatHex(bytes);
-    // TODO(AUTH-03): persist this token in refresh_token table and add rotation logic
   }
 
   public long getRefreshTokenTtlSeconds() {
