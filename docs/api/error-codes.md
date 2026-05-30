@@ -33,5 +33,9 @@ The `field` key is present only for validation errors.
 | `bad_credentials` | 401 | Email address is unknown or the password is incorrect (unified to prevent user enumeration) | AUTH-02 |
 | `account_disabled` | 401 | User account exists but has been disabled by an admin | AUTH-02 |
 | `too_many_attempts` | 429 | Too many failed login attempts from this IP; `Retry-After` header indicates seconds to wait | AUTH-02 |
+| `refresh_reused` | 401 | A refresh token that was already consumed was presented; entire token family revoked (theft detection triggered) | AUTH-03 |
+| `refresh_revoked` | 401 | The refresh token has been explicitly revoked (e.g. via logout or family revocation) | AUTH-03 |
+| `refresh_expired` | 401 | The refresh token exists but its 7-day expiry has passed; re-login required | AUTH-03 |
+| `invalid_refresh` | 401 | The refresh token value does not match any row in the database | AUTH-03 |
 
 Later features must append new codes to this table with their feature slug in the "Registered by" column. The reviewer enforces this.
