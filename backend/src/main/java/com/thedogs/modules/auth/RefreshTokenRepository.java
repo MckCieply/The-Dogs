@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -48,4 +49,25 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT r FROM RefreshToken r WHERE r.tokenHash = :hash")
   Optional<RefreshToken> findByTokenHashForUpdate(@Param("hash") String hash);
+
+  /**
+   * Atomically marks a refresh token as used via a conditional UPDATE. Returns 1 if the row was
+   * updated (this caller won the race), or 0 if another request already rotated the token (the row
+   * existed but {@code usedAt} was already set, or it was revoked/expired).
+   *
+   * <p>Using a conditional UPDATE is the simplest race-free way to implement "exactly-one rotation
+   * wins": no SELECT FOR UPDATE lock is held across the revokeFamily call, which eliminates the
+   * deadlock that would otherwise occur when the REQUIRES_NEW inner transaction tries to UPDATE the
+   * same locked row.
+   */
+  @Modifying
+  @Query(
+      "UPDATE RefreshToken r"
+          + "   SET r.usedAt = :now"
+          + " WHERE r.tokenHash = :hash"
+          + "   AND r.usedAt   IS NULL"
+          + "   AND r.revokedAt IS NULL"
+          + "   AND r.expiresAt > :now")
+  int markUsedIfActive(
+      @Param("hash") String hash, @Param("now") Instant now);
 }
