@@ -13,6 +13,7 @@ import java.util.Map;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -113,13 +114,25 @@ public class GlobalExceptionHandler {
   }
 
   @ExceptionHandler(RefreshTokenReusedException.class)
-  public ProblemDetail handleRefreshTokenReused(RefreshTokenReusedException ex) {
+  public ResponseEntity<ProblemDetail> handleRefreshTokenReused(RefreshTokenReusedException ex) {
     ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
     problem.setType(URI.create(BASE_TYPE + "unauthorized"));
     problem.setTitle("Unauthorized");
     problem.setDetail("Refresh token has already been used");
     problem.setProperty("errors", List.of(Map.of("code", "refresh_reused")));
-    return problem;
+    // AC-3: on theft detection all tokens in the family are revoked; clear the cookie so the
+    // browser does not keep sending a credential that will only produce further 401 responses.
+    ResponseCookie cleared =
+        ResponseCookie.from("refresh_token", "")
+            .maxAge(0)
+            .httpOnly(true)
+            .secure(true)
+            .sameSite("Strict")
+            .path("/api/v1/auth")
+            .build();
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        .header(HttpHeaders.SET_COOKIE, cleared.toString())
+        .body(problem);
   }
 
   @ExceptionHandler(RefreshTokenRevokedException.class)
