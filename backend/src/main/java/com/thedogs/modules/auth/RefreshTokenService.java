@@ -2,8 +2,8 @@ package com.thedogs.modules.auth;
 
 import com.thedogs.modules.auth.exception.InvalidRefreshTokenException;
 import com.thedogs.modules.auth.exception.RefreshTokenExpiredException;
-import com.thedogs.modules.auth.exception.RefreshTokenRevokedException;
 import com.thedogs.modules.auth.exception.RefreshTokenReusedException;
+import com.thedogs.modules.auth.exception.RefreshTokenRevokedException;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -93,14 +93,14 @@ public class RefreshTokenService {
     // SELECT FOR UPDATE — serialises concurrent requests on the same token row.
     // If no row exists for this hash the token is entirely unknown.
     RefreshToken old =
-        repository
-            .findByTokenHashForUpdate(oldHash)
-            .orElseThrow(InvalidRefreshTokenException::new);
+        repository.findByTokenHashForUpdate(oldHash).orElseThrow(InvalidRefreshTokenException::new);
 
     // Theft detection: token was already used in a previous rotation
     if (old.getUsedAt() != null) {
       log.warn(
-          "event=refresh_token_reuse_detected familyId={} userId={}", old.getFamilyId(), old.getUserId());
+          "event=refresh_token_reuse_detected familyId={} userId={}",
+          old.getFamilyId(),
+          old.getUserId());
       revokeFamily(old.getFamilyId());
       throw new RefreshTokenReusedException();
     }

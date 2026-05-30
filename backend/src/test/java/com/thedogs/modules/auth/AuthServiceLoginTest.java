@@ -101,7 +101,8 @@ class AuthServiceLoginTest {
     when(tokenService.getRefreshTokenTtlSeconds()).thenReturn(604800L);
 
     // Default refreshTokenService.issue() stub — returns a dummy entity
-    when(refreshTokenService.issue(any(), any(), any(), isNull(), anyString(), anyString(), anyString()))
+    when(refreshTokenService.issue(
+            any(), any(), any(), isNull(), anyString(), anyString(), anyString()))
         .thenReturn(mock(RefreshToken.class));
   }
 
