@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
   private final TokenService tokenService;
-  private final RefreshTokenStore refreshTokenStore;
+  private final RefreshTokenService refreshTokenService;
   private final UserRepository userRepository;
   private final LoginRateLimiter rateLimiter;
   private final PasswordEncoder passwordEncoder;
@@ -39,12 +40,12 @@ public class AuthService {
 
   public AuthService(
       TokenService tokenService,
-      RefreshTokenStore refreshTokenStore,
+      RefreshTokenService refreshTokenService,
       UserRepository userRepository,
       LoginRateLimiter rateLimiter,
       PasswordEncoder passwordEncoder) {
     this.tokenService = tokenService;
-    this.refreshTokenStore = refreshTokenStore;
+    this.refreshTokenService = refreshTokenService;
     this.userRepository = userRepository;
     this.rateLimiter = rateLimiter;
     this.passwordEncoder = passwordEncoder;
@@ -102,33 +103,45 @@ public class AuthService {
       throw new BadCredentialsException("bad_credentials");
     }
 
-    // Step 7: success
+    // Step 7: success — generate tokens and persist refresh token row
     log.info("event=login_success userId={} ip={}", user.getId(), maskedIp);
 
     String accessToken = tokenService.generateAccessToken(user);
-    String refreshToken = tokenService.generateRefreshToken();
-    refreshTokenStore.store(refreshToken, user.getId());
+    String refreshTokenValue = tokenService.generateRefreshToken();
+
+    // Persist the refresh token to the database (AUTH-03 replaces in-memory RefreshTokenStore)
+    String tokenHash = sha256Hex(refreshTokenValue);
+    String userAgent = httpRequest.getHeader("User-Agent");
+    String ipBucket = maskIp(rawIp);
+    Instant expiresAt = Instant.now().plusSeconds(tokenService.getRefreshTokenTtlSeconds());
+
+    refreshTokenService.issue(
+        user.getId(),
+        expiresAt,
+        UUID.randomUUID(), // new family on every login
+        null, // no parent — first token in family
+        userAgent,
+        ipBucket,
+        tokenHash);
 
     return new LoginResult(
-        LoginResponse.bearer(accessToken, tokenService.getAccessTokenTtlSeconds()), refreshToken);
+        LoginResponse.bearer(accessToken, tokenService.getAccessTokenTtlSeconds()),
+        refreshTokenValue);
   }
 
   @Transactional
   public RefreshResult refresh(String oldRefreshToken) {
-    UUID userId =
-        refreshTokenStore
-            .getUserId(oldRefreshToken)
-            .orElseThrow(() -> new IllegalArgumentException("Invalid or expired refresh token"));
+    // Generate new token value before rotation so the new hash can be stored atomically
+    String newRefreshToken = tokenService.generateRefreshToken();
 
+    // rotateToken handles: SELECT FOR UPDATE, theft detection, family revocation, and issuance
+    RefreshToken newToken = refreshTokenService.rotateToken(oldRefreshToken, newRefreshToken);
+
+    // Look up user for access token generation
     User user =
         userRepository
-            .findById(userId)
+            .findById(newToken.getUserId())
             .orElseThrow(() -> new EntityNotFoundException("User not found"));
-
-    // Rotate the refresh token
-    refreshTokenStore.revoke(oldRefreshToken);
-    String newRefreshToken = tokenService.generateRefreshToken();
-    refreshTokenStore.store(newRefreshToken, userId);
 
     String newAccessToken = tokenService.generateAccessToken(user);
     return new RefreshResult(

@@ -2,8 +2,10 @@ package com.thedogs.modules.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -19,6 +21,7 @@ import com.thedogs.modules.user.Role;
 import com.thedogs.modules.user.User;
 import com.thedogs.modules.user.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -31,7 +34,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
- * Mockito unit tests for AuthService.login() (AUTH-02).
+ * Mockito unit tests for AuthService.login() (AUTH-02 / AUTH-03).
  *
  * <p>No Spring context, no DB, no Docker required. All collaborators are mocked except
  * PasswordEncoder, which is also mocked (with the constructor's encode() call stubbed to return a
@@ -52,7 +55,7 @@ class AuthServiceLoginTest {
   private PasswordEncoder passwordEncoder;
   private LoginRateLimiter rateLimiter;
   private TokenService tokenService;
-  private RefreshTokenStore refreshTokenStore;
+  private RefreshTokenService refreshTokenService;
   private AuthService authService;
   private HttpServletRequest httpRequest;
   private User enabledUser;
@@ -63,7 +66,7 @@ class AuthServiceLoginTest {
     passwordEncoder = mock(PasswordEncoder.class);
     rateLimiter = mock(LoginRateLimiter.class);
     tokenService = mock(TokenService.class);
-    refreshTokenStore = mock(RefreshTokenStore.class);
+    refreshTokenService = mock(RefreshTokenService.class);
     httpRequest = mock(HttpServletRequest.class);
 
     // Stub the constructor-time encode() call that builds dummyHash
@@ -71,7 +74,7 @@ class AuthServiceLoginTest {
 
     authService =
         new AuthService(
-            tokenService, refreshTokenStore, userRepository, rateLimiter, passwordEncoder);
+            tokenService, refreshTokenService, userRepository, rateLimiter, passwordEncoder);
 
     // Build an enabled test user — set ID via reflection so there is no DB involved
     Role trainerRole = Role.builder().id((short) 1).name("ROLE_TRAINER").build();
@@ -88,12 +91,18 @@ class AuthServiceLoginTest {
     // Default HTTP request stubs — direct TCP peer, no proxy headers
     when(httpRequest.getHeader("CF-Connecting-IP")).thenReturn(null);
     when(httpRequest.getHeader("X-Forwarded-For")).thenReturn(null);
+    when(httpRequest.getHeader("User-Agent")).thenReturn("Test/1.0");
     when(httpRequest.getRemoteAddr()).thenReturn(TEST_IP);
 
     // Default token stubs
     when(tokenService.generateAccessToken(enabledUser)).thenReturn(ACCESS_TOKEN);
     when(tokenService.generateRefreshToken()).thenReturn(REFRESH_TOKEN);
     when(tokenService.getAccessTokenTtlSeconds()).thenReturn(900L);
+    when(tokenService.getRefreshTokenTtlSeconds()).thenReturn(604800L);
+
+    // Default refreshTokenService.issue() stub — returns a dummy entity
+    when(refreshTokenService.issue(any(), any(), any(), isNull(), anyString(), anyString(), anyString()))
+        .thenReturn(mock(RefreshToken.class));
   }
 
   // ---------------------------------------------------------------------------
@@ -125,13 +134,23 @@ class AuthServiceLoginTest {
   }
 
   @Test
-  void login_withValidCredentials_storesRefreshTokenInStore() {
+  void login_withValidCredentials_persistsRefreshTokenViaService() {
     when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(enabledUser));
     when(passwordEncoder.matches(TEST_PASSWORD, enabledUser.getPasswordHash())).thenReturn(true);
 
     authService.login(new LoginRequest(TEST_EMAIL, TEST_PASSWORD), httpRequest);
 
-    verify(refreshTokenStore).store(REFRESH_TOKEN, USER_ID);
+    // Verify issue() is called with correct userId, a non-null expiry, a new family UUID, null
+    // parent, and a non-null hash — we cannot check the exact hash without re-implementing SHA-256
+    verify(refreshTokenService)
+        .issue(
+            eq(USER_ID),
+            any(Instant.class),
+            any(UUID.class),
+            isNull(),
+            anyString(),
+            anyString(),
+            anyString());
   }
 
   @Test
