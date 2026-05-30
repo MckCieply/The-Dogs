@@ -60,7 +60,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
    * deadlock that would otherwise occur when the REQUIRES_NEW inner transaction tries to UPDATE the
    * same locked row.
    */
-  @Modifying
+  @Modifying(clearAutomatically = true)
   @Query(
       "UPDATE RefreshToken r"
           + "   SET r.usedAt = :now"

@@ -295,4 +295,79 @@ describe('AuthStore', () => {
 
     await expect(store.refresh()).rejects.toThrow('session expired');
   });
+
+  // ---------------------------------------------------------------------------
+  // refresh() action — 401 error-code paths (theft detection + revocation)
+  //
+  // NOTE FOR IMPLEMENTER/REVIEWER: the current refresh() implementation has no
+  // catch block, so it re-throws without clearing state or setting an error.
+  // These tests document that behaviour. If the spec requires the store to clear
+  // the session on receipt of refresh_revoked / refresh_reused (so the UI can
+  // redirect to /login immediately without a manual store.clearToken() call),
+  // add a catch block to refresh() and update these tests accordingly.
+  // ---------------------------------------------------------------------------
+
+  it('refresh() with refresh_revoked 401 re-throws and leaves accessToken unchanged', async () => {
+    store.setToken(TEST_TOKEN, TEST_USER);
+
+    const revokedError = Object.assign(new Error('refresh_revoked'), {
+      status: 401,
+      error: { errors: [{ code: 'refresh_revoked' }] },
+    });
+    authServiceMock.refresh.mockRejectedValue(revokedError);
+
+    await expect(store.refresh()).rejects.toMatchObject({ message: 'refresh_revoked' });
+
+    // Current implementation: no catch block — state is not cleared on refresh failure.
+    // The in-memory token remains until the caller (e.g. the HTTP interceptor) explicitly
+    // calls store.clearToken() after catching the error.
+    expect(store.accessToken()).toBe(TEST_TOKEN);
+    expect(store.user()).toEqual(TEST_USER);
+  });
+
+  it('refresh() with refresh_revoked 401 does not set an error on the store', async () => {
+    store.setToken(TEST_TOKEN, TEST_USER);
+
+    const revokedError = Object.assign(new Error('refresh_revoked'), {
+      status: 401,
+      error: { errors: [{ code: 'refresh_revoked' }] },
+    });
+    authServiceMock.refresh.mockRejectedValue(revokedError);
+
+    await expect(store.refresh()).rejects.toBeDefined();
+
+    // Current implementation: refresh() has no catch, so error signal is never set.
+    expect(store.error()).toBeNull();
+  });
+
+  it('refresh() with refresh_reused 401 re-throws and leaves accessToken unchanged', async () => {
+    store.setToken(TEST_TOKEN, TEST_USER);
+
+    const reusedError = Object.assign(new Error('refresh_reused'), {
+      status: 401,
+      error: { errors: [{ code: 'refresh_reused' }] },
+    });
+    authServiceMock.refresh.mockRejectedValue(reusedError);
+
+    await expect(store.refresh()).rejects.toMatchObject({ message: 'refresh_reused' });
+
+    // Current implementation: theft-detection response does not automatically clear
+    // the in-memory token — caller is responsible for calling store.clearToken().
+    expect(store.accessToken()).toBe(TEST_TOKEN);
+    expect(store.user()).toEqual(TEST_USER);
+  });
+
+  it('refresh() with refresh_reused 401 does not set an error on the store', async () => {
+    store.setToken(TEST_TOKEN, TEST_USER);
+
+    const reusedError = Object.assign(new Error('refresh_reused'), {
+      status: 401,
+      error: { errors: [{ code: 'refresh_reused' }] },
+    });
+    authServiceMock.refresh.mockRejectedValue(reusedError);
+
+    await expect(store.refresh()).rejects.toBeDefined();
+
+    expect(store.error()).toBeNull();
+  });
 });

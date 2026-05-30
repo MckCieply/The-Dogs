@@ -198,3 +198,44 @@ test('logout is idempotent — second call also returns 204', async ({ page }) =
   const second = await page.request.post(`${BACKEND_URL}/api/v1/auth/logout`);
   expect(second.status()).toBe(204);
 });
+
+// ---------------------------------------------------------------------------
+// Logout via UI button — HomeComponent wires the "Log out" button to
+// authStore.logout() which then calls router.navigate(['/login']).
+// This test exercises the full UI → store → backend → redirect path,
+// complementing the direct-API logout tests above.
+// ---------------------------------------------------------------------------
+
+test('logout clears session and redirects to /login when the Log out button is clicked', async ({
+  page,
+  context,
+}) => {
+  // Step 1: log in via the UI form and land on the home page.
+  await loginViaUi(page);
+  expect(page.url()).not.toContain('/login');
+
+  // Step 2: confirm a refresh_token cookie exists before logout.
+  const cookiesBefore = await context.cookies();
+  expect(
+    cookiesBefore.find((c) => c.name === 'refresh_token'),
+    'refresh_token cookie must exist after login',
+  ).toBeDefined();
+
+  // Step 3: click the "Log out" button rendered by HomeComponent.
+  // The button has aria-label="Log out" (see home.component.ts).
+  await page.getByRole('button', { name: 'Log out' }).click();
+
+  // Step 4: HomeComponent.logout() calls authStore.logout() then router.navigate(['/login']).
+  // Wait for the URL to settle on /login.
+  await page.waitForURL('**/login', { timeout: 10_000 });
+  expect(page.url()).toContain('/login');
+
+  // Step 5: the login form must be visible — the user is fully signed out.
+  await page.waitForSelector('form', { state: 'visible', timeout: 5_000 });
+
+  // Step 6: navigating back to / while unauthenticated must redirect back to /login
+  // (the auth guard has no in-memory token after the store was cleared).
+  await page.goto('/');
+  await page.waitForURL('**/login', { timeout: 5_000 });
+  expect(page.url()).toContain('/login');
+});
