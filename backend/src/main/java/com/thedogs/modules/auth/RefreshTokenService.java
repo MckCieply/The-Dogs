@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <ul>
  *   <li>Only the SHA-256 hash of the token value is persisted — never the raw value.
- *   <li>rotateToken uses SELECT FOR UPDATE to prevent concurrent double-rotation.
+ *   <li>rotateToken uses an atomic conditional UPDATE to prevent concurrent double-rotation.
  *   <li>Any reuse of a consumed token triggers full family revocation (OWASP rotation pattern).
  * </ul>
  */
@@ -111,20 +111,16 @@ public class RefreshTokenService {
   public RefreshToken rotateToken(String oldTokenValue, String newTokenValue) {
     String oldHash = sha256Hex(oldTokenValue);
     String newHash = sha256Hex(newTokenValue);
+    Instant now = Instant.now();
 
-    // Phase 1: Non-locking read — fast path to detect obviously invalid tokens.
-    // If the token is already used or doesn't exist, handle it here WITHOUT acquiring a lock.
-    // This avoids a deadlock that would occur if we held a SELECT FOR UPDATE lock on the token
-    // row while also trying to UPDATE it inside a REQUIRES_NEW transaction (revokeFamily).
+    // Phase 1: Read to detect obviously invalid tokens (unknown, already-used, revoked, expired).
+    // This avoids acquiring any row lock — we do not hold a SELECT FOR UPDATE here, which would
+    // cause a deadlock when the REQUIRES_NEW revokeFamily call tries to UPDATE the same locked row.
     RefreshToken earlyCheck =
         repository.findByTokenHash(oldHash).orElseThrow(InvalidRefreshTokenException::new);
 
     if (earlyCheck.getUsedAt() != null) {
-      // Theft detected — the token was already consumed in a previous rotation.
-      // Call revokeFamily through the Spring proxy so REQUIRES_NEW takes effect and the
-      // revocation is committed even though this method's transaction will be rolled back.
-      // In unit tests, self is null (no Spring context); fall back to direct call which is fine
-      // because unit tests mock the repository and do not use real transactions.
+      // Theft detected — token was already consumed in a prior rotation.
       log.warn(
           "event=refresh_token_reuse_detected familyId={} userId={}",
           earlyCheck.getFamilyId(),
@@ -133,45 +129,42 @@ public class RefreshTokenService {
       proxy.revokeFamily(earlyCheck.getFamilyId());
       throw new RefreshTokenReusedException();
     }
-
-    // Phase 2: Locking read — acquire SELECT FOR UPDATE to serialise concurrent rotations.
-    // Re-read with lock to prevent two threads from both seeing the token as unused.
-    RefreshToken old =
-        repository.findByTokenHashForUpdate(oldHash).orElseThrow(InvalidRefreshTokenException::new);
-
-    // Re-check after acquiring the lock (another thread may have rotated it between phases 1 and 2)
-    if (old.getUsedAt() != null) {
-      log.warn(
-          "event=refresh_token_reuse_detected familyId={} userId={}",
-          old.getFamilyId(),
-          old.getUserId());
-      // Cannot call REQUIRES_NEW here — we hold the lock (deadlock risk).
-      // Fall back to same-transaction revocation; the lock owner can always update the locked row.
-      revokeFamily(old.getFamilyId());
-      throw new RefreshTokenReusedException();
-    }
-
-    if (old.getRevokedAt() != null) {
+    if (earlyCheck.getRevokedAt() != null) {
       throw new RefreshTokenRevokedException();
     }
-
-    if (old.getExpiresAt().isBefore(Instant.now())) {
+    if (earlyCheck.getExpiresAt().isBefore(now)) {
       throw new RefreshTokenExpiredException();
     }
 
-    // Mark old token as consumed
-    old.setUsedAt(Instant.now());
-    repository.save(old);
+    // Phase 2: Atomic conditional UPDATE — "mark as used only if still active".
+    // Returns 1 if this caller won the race, 0 if another request already rotated or revoked it.
+    // Because the UPDATE is atomic at the DB level, no SELECT FOR UPDATE lock is needed.
+    // No lock is held when revokeFamily (REQUIRES_NEW) executes, eliminating the deadlock risk.
+    int updated = repository.markUsedIfActive(oldHash, now);
+
+    if (updated == 0) {
+      // Another concurrent request just rotated (or revoked) this token between Phase 1 and here.
+      // Re-read the current state to determine the right error code.
+      RefreshToken current =
+          repository.findByTokenHash(oldHash).orElseThrow(InvalidRefreshTokenException::new);
+      log.warn(
+          "event=refresh_token_reuse_detected familyId={} userId={}",
+          current.getFamilyId(),
+          current.getUserId());
+      RefreshTokenService proxy = (self != null) ? self : this;
+      proxy.revokeFamily(current.getFamilyId());
+      throw new RefreshTokenReusedException();
+    }
 
     // Issue new token in the same family, linked to the old one as parent
-    Instant newExpiry = Instant.now().plusSeconds(tokenService.getRefreshTokenTtlSeconds());
+    Instant newExpiry = now.plusSeconds(tokenService.getRefreshTokenTtlSeconds());
     return issue(
-        old.getUserId(),
+        earlyCheck.getUserId(),
         newExpiry,
-        old.getFamilyId(),
-        old.getId(),
-        old.getUserAgent(),
-        old.getIpBucket(),
+        earlyCheck.getFamilyId(),
+        earlyCheck.getId(),
+        earlyCheck.getUserAgent(),
+        earlyCheck.getIpBucket(),
         newHash);
   }
 
