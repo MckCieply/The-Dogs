@@ -247,6 +247,27 @@ describe('AuthStore', () => {
     expect(store.user()).toBeNull();
   });
 
+  it('logout with no active session leaves state cleared and still delegates to AuthService', async () => {
+    // Precondition: store is in its initial state — no token, no user.
+    expect(store.accessToken()).toBeNull();
+    expect(store.user()).toBeNull();
+
+    authServiceMock.logout.mockResolvedValue(undefined);
+
+    await store.logout();
+
+    // State must remain cleared after the call.
+    expect(store.accessToken()).toBeNull();
+    expect(store.user()).toBeNull();
+    expect(store.loading()).toBe(false);
+    expect(store.error()).toBeNull();
+
+    // The store always delegates to AuthService.logout regardless of whether a
+    // session was active — it cannot know whether the browser still holds a valid
+    // HttpOnly cookie, so the backend call is always made.
+    expect(authServiceMock.logout).toHaveBeenCalledTimes(1);
+  });
+
   // ---------------------------------------------------------------------------
   // refresh() action
   // ---------------------------------------------------------------------------
