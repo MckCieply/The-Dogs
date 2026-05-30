@@ -8,6 +8,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,6 +25,8 @@ public class AuthController {
 
   private final AuthService authService;
   private final TokenService tokenService;
+  private final RefreshTokenService refreshTokenService;
+  private final RefreshTokenRepository refreshTokenRepository;
 
   @PostMapping("/login")
   public ResponseEntity<LoginResponse> login(
@@ -44,6 +48,35 @@ public class AuthController {
     AuthService.RefreshResult result = authService.refresh(refreshToken);
     setRefreshCookie(response, result.refreshToken());
     return ResponseEntity.ok(result.refreshResponse());
+  }
+
+  /**
+   * Revokes the refresh token family associated with the cookie and clears the cookie. Always
+   * returns 204 — idempotent, safe to call without active auth state (AC-4).
+   */
+  @PostMapping("/logout")
+  public ResponseEntity<Void> logout(HttpServletRequest request) {
+    String cookieValue = extractRefreshCookie(request);
+
+    if (cookieValue != null) {
+      // Hash the value and look up any row (even used/revoked) to get the family id
+      String hash = RefreshTokenService.sha256Hex(cookieValue);
+      refreshTokenRepository
+          .findByTokenHash(hash)
+          .ifPresent(token -> refreshTokenService.revokeFamily(token.getFamilyId()));
+    }
+
+    // Always clear the cookie regardless of whether a token was found
+    ResponseCookie cleared =
+        ResponseCookie.from(REFRESH_COOKIE_NAME, "")
+            .maxAge(0)
+            .httpOnly(true)
+            .secure(true)
+            .sameSite("Strict")
+            .path("/api/v1/auth")
+            .build();
+
+    return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, cleared.toString()).build();
   }
 
   private void setRefreshCookie(HttpServletResponse response, String token) {
