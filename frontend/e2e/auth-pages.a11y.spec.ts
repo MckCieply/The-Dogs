@@ -114,3 +114,39 @@ test('login page in validation-error state has no serious or critical axe violat
         .join('\n'),
   ).toHaveLength(0);
 });
+
+// ---------------------------------------------------------------------------
+// / (unauthenticated) — AUTH-03: guard redirects to /login; axe scan on landing
+//
+// After logout the in-memory token is gone. Navigating to / triggers the auth
+// guard which redirects to /login. This test confirms that the redirected login
+// page (as seen in the post-logout flow) has no serious/critical axe violations.
+// ---------------------------------------------------------------------------
+
+test('unauthenticated navigation to / redirects to /login with no serious or critical axe violations', async ({
+  page,
+}) => {
+  // Navigate to the root path without any auth state — guard should redirect to /login.
+  await page.goto('/');
+  await page.waitForURL('**/login', { timeout: 5_000 });
+
+  // Wait for the login form to be fully rendered.
+  await page.waitForSelector('form', { state: 'visible' });
+
+  const results = await new AxeBuilder({ page })
+    .include('body')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+
+  const seriousOrCritical = results.violations.filter(
+    (v) => v.impact === 'serious' || v.impact === 'critical',
+  );
+
+  expect(
+    seriousOrCritical,
+    `Found ${seriousOrCritical.length} serious/critical axe violations on / (redirected to /login after logout):\n` +
+      seriousOrCritical
+        .map((v) => `  [${v.impact}] ${v.id}: ${v.description}`)
+        .join('\n'),
+  ).toHaveLength(0);
+});

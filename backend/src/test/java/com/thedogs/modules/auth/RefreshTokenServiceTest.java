@@ -54,13 +54,11 @@ class RefreshTokenServiceTest {
     // Default TTL stub used by rotateToken() when computing new expiry
     when(tokenService.getRefreshTokenTtlSeconds()).thenReturn(604800L);
 
-    // rotateToken() uses a two-phase read strategy:
-    //   Phase 1 — non-locking findByTokenHash() for early theft detection (no SELECT FOR UPDATE)
-    //   Phase 2 — findByTokenHashForUpdate() with SELECT FOR UPDATE for safe rotation
-    // Tests that call rotateToken() must stub BOTH methods so Phase 1 does not throw
-    // InvalidRefreshTokenException before Phase 2 is reached.
-    // Default: return empty so unexpected token hashes produce the expected error.
-    // Individual tests override this default for the specific hash they exercise.
+    // rotateToken() uses a two-phase strategy:
+    //   Phase 1 — non-locking findByTokenHash() for early detection of invalid/used/revoked tokens
+    //   Phase 2 — markUsedIfActive() atomic conditional UPDATE (returns 1=won, 0=lost the race)
+    // Tests that call rotateToken() must stub both methods appropriately.
+    // Default: markUsedIfActive returns 1 (caller wins the race) for the happy path.
   }
 
   // ---------------------------------------------------------------------------
@@ -72,19 +70,21 @@ class RefreshTokenServiceTest {
     RefreshToken old = buildActiveToken(TOKEN_ID, FAMILY_ID, USER_ID);
     String oldHash = RefreshTokenService.sha256Hex(OLD_TOKEN_VALUE);
 
+    // Phase 1: non-locking read returns the active token.
+    // Phase 2: markUsedIfActive returns 1 — this caller wins the race.
     when(repository.findByTokenHash(oldHash)).thenReturn(Optional.of(old));
-    when(repository.findByTokenHashForUpdate(oldHash)).thenReturn(Optional.of(old));
+    when(repository.markUsedIfActive(any(), any())).thenReturn(1);
     when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     service.rotateToken(OLD_TOKEN_VALUE, NEW_TOKEN_VALUE);
 
-    // The old token must have been saved with usedAt set
+    // The new token must have been saved (issue() calls save once)
     ArgumentCaptor<RefreshToken> captor = ArgumentCaptor.forClass(RefreshToken.class);
-    verify(repository, times(2)).save(captor.capture());
-    RefreshToken saved = captor.getAllValues().get(0);
-    assertThat(saved.getUsedAt())
-        .as("usedAt must be set on the old token after rotation")
-        .isNotNull();
+    verify(repository, times(1)).save(captor.capture());
+    RefreshToken saved = captor.getValue();
+    assertThat(saved.getParentId())
+        .as("The saved new token must reference the old token as parent")
+        .isEqualTo(TOKEN_ID);
   }
 
   @Test
@@ -93,7 +93,7 @@ class RefreshTokenServiceTest {
     String oldHash = RefreshTokenService.sha256Hex(OLD_TOKEN_VALUE);
 
     when(repository.findByTokenHash(oldHash)).thenReturn(Optional.of(old));
-    when(repository.findByTokenHashForUpdate(oldHash)).thenReturn(Optional.of(old));
+    when(repository.markUsedIfActive(any(), any())).thenReturn(1);
     when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     RefreshToken result = service.rotateToken(OLD_TOKEN_VALUE, NEW_TOKEN_VALUE);
@@ -109,7 +109,7 @@ class RefreshTokenServiceTest {
     String oldHash = RefreshTokenService.sha256Hex(OLD_TOKEN_VALUE);
 
     when(repository.findByTokenHash(oldHash)).thenReturn(Optional.of(old));
-    when(repository.findByTokenHashForUpdate(oldHash)).thenReturn(Optional.of(old));
+    when(repository.markUsedIfActive(any(), any())).thenReturn(1);
     when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     RefreshToken result = service.rotateToken(OLD_TOKEN_VALUE, NEW_TOKEN_VALUE);
@@ -125,7 +125,7 @@ class RefreshTokenServiceTest {
     String oldHash = RefreshTokenService.sha256Hex(OLD_TOKEN_VALUE);
 
     when(repository.findByTokenHash(oldHash)).thenReturn(Optional.of(old));
-    when(repository.findByTokenHashForUpdate(oldHash)).thenReturn(Optional.of(old));
+    when(repository.markUsedIfActive(any(), any())).thenReturn(1);
     when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
     RefreshToken result = service.rotateToken(OLD_TOKEN_VALUE, NEW_TOKEN_VALUE);
@@ -146,9 +146,8 @@ class RefreshTokenServiceTest {
     usedToken.setUsedAt(Instant.now().minusSeconds(10));
     String oldHash = RefreshTokenService.sha256Hex(OLD_TOKEN_VALUE);
 
-    // Phase 1 (non-locking) detects usedAt != null — Phase 2 (locking) is never reached.
+    // Phase 1 (non-locking) detects usedAt != null — Phase 2 (lock+refresh) is never reached.
     when(repository.findByTokenHash(oldHash)).thenReturn(Optional.of(usedToken));
-    when(repository.findByTokenHashForUpdate(oldHash)).thenReturn(Optional.of(usedToken));
     when(repository.findActiveByFamilyId(FAMILY_ID)).thenReturn(List.of());
 
     assertThatThrownBy(() -> service.rotateToken(OLD_TOKEN_VALUE, NEW_TOKEN_VALUE))
@@ -162,9 +161,8 @@ class RefreshTokenServiceTest {
     String oldHash = RefreshTokenService.sha256Hex(OLD_TOKEN_VALUE);
     List<RefreshToken> family = List.of(usedToken);
 
-    // Phase 1 (non-locking) detects usedAt != null — Phase 2 (locking) is never reached.
+    // Phase 1 (non-locking) detects usedAt != null — Phase 2 (lock+refresh) is never reached.
     when(repository.findByTokenHash(oldHash)).thenReturn(Optional.of(usedToken));
-    when(repository.findByTokenHashForUpdate(oldHash)).thenReturn(Optional.of(usedToken));
     when(repository.findActiveByFamilyId(FAMILY_ID)).thenReturn(family);
     when(repository.saveAll(any())).thenReturn(family);
 
@@ -187,9 +185,8 @@ class RefreshTokenServiceTest {
     revokedToken.setRevokedAt(Instant.now().minusSeconds(30));
     String oldHash = RefreshTokenService.sha256Hex(OLD_TOKEN_VALUE);
 
-    // Phase 1: revokedToken has usedAt=null → passes Phase 1, proceeds to Phase 2 (locking read).
+    // Phase 1 detects revokedAt != null → throws before Phase 2 (markUsedIfActive) is reached.
     when(repository.findByTokenHash(oldHash)).thenReturn(Optional.of(revokedToken));
-    when(repository.findByTokenHashForUpdate(oldHash)).thenReturn(Optional.of(revokedToken));
 
     assertThatThrownBy(() -> service.rotateToken(OLD_TOKEN_VALUE, NEW_TOKEN_VALUE))
         .isInstanceOf(RefreshTokenRevokedException.class);
@@ -202,7 +199,6 @@ class RefreshTokenServiceTest {
     String oldHash = RefreshTokenService.sha256Hex(OLD_TOKEN_VALUE);
 
     when(repository.findByTokenHash(oldHash)).thenReturn(Optional.of(revokedToken));
-    when(repository.findByTokenHashForUpdate(oldHash)).thenReturn(Optional.of(revokedToken));
 
     try {
       service.rotateToken(OLD_TOKEN_VALUE, NEW_TOKEN_VALUE);
@@ -223,9 +219,8 @@ class RefreshTokenServiceTest {
     expiredToken.setExpiresAt(Instant.now().minusSeconds(60));
     String oldHash = RefreshTokenService.sha256Hex(OLD_TOKEN_VALUE);
 
-    // Phase 1: expiredToken has usedAt=null → passes Phase 1, proceeds to Phase 2 (locking read).
+    // Phase 1 detects expiresAt < now → throws before Phase 2 (markUsedIfActive) is reached.
     when(repository.findByTokenHash(oldHash)).thenReturn(Optional.of(expiredToken));
-    when(repository.findByTokenHashForUpdate(oldHash)).thenReturn(Optional.of(expiredToken));
 
     assertThatThrownBy(() -> service.rotateToken(OLD_TOKEN_VALUE, NEW_TOKEN_VALUE))
         .isInstanceOf(RefreshTokenExpiredException.class);
@@ -238,7 +233,6 @@ class RefreshTokenServiceTest {
     String oldHash = RefreshTokenService.sha256Hex(OLD_TOKEN_VALUE);
 
     when(repository.findByTokenHash(oldHash)).thenReturn(Optional.of(expiredToken));
-    when(repository.findByTokenHashForUpdate(oldHash)).thenReturn(Optional.of(expiredToken));
 
     try {
       service.rotateToken(OLD_TOKEN_VALUE, NEW_TOKEN_VALUE);
@@ -254,8 +248,10 @@ class RefreshTokenServiceTest {
 
   @Test
   void rotateToken_withUnknownToken_throwsInvalidRefreshTokenException() {
+    // Phase 1: findByTokenHash returns empty — InvalidRefreshTokenException thrown immediately
+    // before Phase 2 (markUsedIfActive) is reached.
     String unknownHash = RefreshTokenService.sha256Hex("completely-unknown-token");
-    when(repository.findByTokenHashForUpdate(unknownHash)).thenReturn(Optional.empty());
+    when(repository.findByTokenHash(unknownHash)).thenReturn(Optional.empty());
 
     assertThatThrownBy(() -> service.rotateToken("completely-unknown-token", NEW_TOKEN_VALUE))
         .isInstanceOf(InvalidRefreshTokenException.class);
@@ -304,8 +300,10 @@ class RefreshTokenServiceTest {
   @Test
   void rotateToken_concurrentRaceOnSameToken_exactlyOneSucceedsAndOneThrowsReusedException()
       throws Exception {
-    // Use a mutable container to simulate the SELECT FOR UPDATE serialisation:
-    // the first thread that sets usedAt wins; the second thread sees usedAt != null.
+    // Simulate the atomic conditional UPDATE race:
+    // Thread-1 wins: markUsedIfActive returns 1 (row updated successfully).
+    // Thread-2 loses: markUsedIfActive returns 0 (row already updated by thread-1).
+    // When thread-2 gets 0, it re-reads the token and sees usedAt != null → theft detected.
     RefreshToken sharedToken = buildActiveToken(TOKEN_ID, FAMILY_ID, USER_ID);
     String oldHash = RefreshTokenService.sha256Hex(OLD_TOKEN_VALUE);
 
@@ -313,34 +311,30 @@ class RefreshTokenServiceTest {
     String newValue1 = "new-token-for-thread-1";
     String newValue2 = "new-token-for-thread-2";
 
-    // Simulate the two-phase read race condition with separate call counters.
-    //
-    // Phase 1 (findByTokenHash — non-locking):
-    //   Both threads see a fresh token here (before any rotation commits).
-    // Phase 2 (findByTokenHashForUpdate — SELECT FOR UPDATE):
-    //   Thread-1 is first through the lock and sees a fresh token.
-    //   Thread-2 is second and sees the token as already used (thread-1 committed).
-    //
-    // This models: thread-1 acquires the lock first and rotates; thread-2 finds usedAt != null.
-    AtomicInteger phase2CallCount = new AtomicInteger(0);
+    AtomicInteger markUsedCallCount = new AtomicInteger(0);
 
-    // Phase 1: both threads see a fresh token (no lock contention yet)
-    when(repository.findByTokenHash(oldHash)).thenReturn(Optional.of(sharedToken));
+    // Phase 1 (findByTokenHash — called twice: once for initial check, once in the "lost race" path)
+    // First two calls: return fresh token (initial Phase 1 check for each thread)
+    // Third call: return used token (re-read after thread-2 gets 0 from markUsedIfActive)
+    AtomicInteger findByHashCallCount = new AtomicInteger(0);
+    RefreshToken usedToken = buildActiveToken(TOKEN_ID, FAMILY_ID, USER_ID);
+    usedToken.setUsedAt(Instant.now().minusSeconds(1));
 
-    // Phase 2: first call returns fresh; second call returns used (thread-1 committed first)
-    when(repository.findByTokenHashForUpdate(oldHash))
+    when(repository.findByTokenHash(oldHash))
         .thenAnswer(
             inv -> {
-              int call = phase2CallCount.incrementAndGet();
-              if (call == 1) {
-                // First thread through the lock: token is still unused
-                return Optional.of(sharedToken);
-              } else {
-                // Second thread through the lock: simulate first thread having committed rotation
-                RefreshToken usedView = buildActiveToken(TOKEN_ID, FAMILY_ID, USER_ID);
-                usedView.setUsedAt(Instant.now().minusSeconds(1));
-                return Optional.of(usedView);
-              }
+              int call = findByHashCallCount.incrementAndGet();
+              // First two calls: Phase 1 checks — token still fresh
+              // Third call onwards: re-read after losing the race — token already used
+              return call <= 2 ? Optional.of(sharedToken) : Optional.of(usedToken);
+            });
+
+    // Phase 2: first markUsedIfActive returns 1 (thread-1 wins); second returns 0 (thread-2 loses)
+    when(repository.markUsedIfActive(any(), any()))
+        .thenAnswer(
+            inv -> {
+              int call = markUsedCallCount.incrementAndGet();
+              return call == 1 ? 1 : 0; // first wins, subsequent lose
             });
 
     when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
