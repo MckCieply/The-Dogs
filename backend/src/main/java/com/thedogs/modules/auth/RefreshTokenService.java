@@ -194,6 +194,26 @@ public class RefreshTokenService {
   }
 
   /**
+   * Revokes the token family associated with the given raw token value. Idempotent — if the token
+   * is not found or is already revoked the method returns without error.
+   *
+   * <p>Hashes the raw value before querying so the plaintext is never stored or logged.
+   *
+   * @param rawTokenValue the raw (unhashed) refresh token from the cookie
+   */
+  public void logout(String rawTokenValue) {
+    String hash = sha256Hex(rawTokenValue);
+    repository
+        .findByTokenHash(hash)
+        .ifPresent(
+            token -> {
+              if (token.getRevokedAt() == null) {
+                revokeFamily(token.getFamilyId());
+              }
+            });
+  }
+
+  /**
    * Scheduled cleanup of expired and revoked tokens older than 30 days.
    *
    * <p>TODO(ops): tune the cron expression and retention window via application config before

@@ -1,12 +1,10 @@
 package com.thedogs.modules.auth;
 
-import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -40,15 +38,6 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
           + " WHERE r.familyId = :familyId"
           + "   AND r.revokedAt IS NULL")
   List<RefreshToken> findActiveByFamilyId(@Param("familyId") UUID familyId);
-
-  /**
-   * Fetches a token by hash with a pessimistic write lock (SELECT FOR UPDATE). Prevents two
-   * concurrent requests from both seeing the token as unused and both succeeding — only one
-   * transaction gets the lock; the other either waits or fails.
-   */
-  @Lock(LockModeType.PESSIMISTIC_WRITE)
-  @Query("SELECT r FROM RefreshToken r WHERE r.tokenHash = :hash")
-  Optional<RefreshToken> findByTokenHashForUpdate(@Param("hash") String hash);
 
   /**
    * Atomically marks a refresh token as used via a conditional UPDATE. Returns 1 if the row was
