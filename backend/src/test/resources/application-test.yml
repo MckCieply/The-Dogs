@@ -23,3 +23,24 @@ jwt:
 logging:
   level:
     com.thedogs: INFO
+    # --- Security-log suppression for AC-10 tests -----------------------------------
+    # AC-10 integration tests attach a ListAppender to the root logger and set its level
+    # to Level.ALL to capture all output. Without explicit levels below, internal framework
+    # loggers at TRACE/DEBUG would leak sensitive values (token hash, password).
+    # Pinning these loggers here means their level is not overridden by rootLogger.setLevel(ALL).
+    #
+    # Hibernate SQL/JDBC parameter-binding trace — logs "binding parameter (N:VARCHAR) <- [hash]"
+    org.hibernate.orm.jdbc.bind: WARN
+    org.hibernate.orm.jdbc.extract: WARN
+    org.hibernate.SQL: WARN
+    # Hibernate type extraction trace — logs "extracted value (N:VARCHAR) -> [hash]"
+    org.hibernate.type: WARN
+    # PostgreSQL JDBC wire-protocol trace — logs "FE=> Bind(...,$1=<('hash')>...)"
+    org.postgresql: WARN
+    # Spring HTTP message converter — logs "Read [type] to [LoginRequest[...,password=...]]"
+    org.springframework.http.converter: WARN
+    org.springframework.web.servlet.mvc.method.annotation: WARN
+    # Broad suppression of other framework internals that may trace SQL or request data
+    org.springframework.jdbc: WARN
+    org.springframework.orm: WARN
+    org.hibernate: WARN
