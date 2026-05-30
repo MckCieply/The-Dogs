@@ -231,25 +231,16 @@ class AuthRefreshLogoutIT {
         .perform(post(REFRESH_URL).cookie(new Cookie(REFRESH_COOKIE_NAME, originalCookieValue)))
         .andExpect(status().isOk());
 
-    // Note: the controller currently does not explicitly clear the cookie on reuse detection;
-    // this test documents the expected behaviour so the implementer can verify or add clearing.
-    // The GlobalExceptionHandler handles the 401 — cookie clearing on reuse is desirable per spec.
-    // If this test fails, it is a signal that cookie-clearing on AC-3 needs to be implemented.
-    MvcResult reuseResult =
-        mockMvc
-            .perform(post(REFRESH_URL).cookie(new Cookie(REFRESH_COOKIE_NAME, originalCookieValue)))
-            .andExpect(status().isUnauthorized())
-            .andReturn();
-
-    // The response should either have no Set-Cookie or a Max-Age=0 clearing cookie
-    String setCookieHeader = reuseResult.getResponse().getHeader("Set-Cookie");
-    if (setCookieHeader != null) {
-      assertThat(setCookieHeader)
-          .as(
-              "If Set-Cookie is present on theft detection, it must clear the cookie (Max-Age=0 or empty value)")
-          .containsIgnoringCase("Max-Age=0");
-    }
-    // If Set-Cookie is null here, the implementer must add clearing; note flagged in handoff.
+    // AC-3: reusing a used token triggers theft detection — GlobalExceptionHandler must clear the
+    // cookie so the browser stops sending a credential that will only produce further 401s.
+    mockMvc
+        .perform(post(REFRESH_URL).cookie(new Cookie(REFRESH_COOKIE_NAME, originalCookieValue)))
+        .andExpect(status().isUnauthorized())
+        .andExpect(
+            header()
+                .string(
+                    "Set-Cookie",
+                    org.hamcrest.Matchers.containsString("Max-Age=0")));
   }
 
   // ---------------------------------------------------------------------------
