@@ -313,7 +313,8 @@ class RefreshTokenServiceTest {
 
     AtomicInteger markUsedCallCount = new AtomicInteger(0);
 
-    // Phase 1 (findByTokenHash — called twice: once for initial check, once in the "lost race" path)
+    // Phase 1 (findByTokenHash — called twice: once for initial check, once in the "lost race"
+    // path)
     // First two calls: return fresh token (initial Phase 1 check for each thread)
     // Third call: return used token (re-read after thread-2 gets 0 from markUsedIfActive)
     AtomicInteger findByHashCallCount = new AtomicInteger(0);

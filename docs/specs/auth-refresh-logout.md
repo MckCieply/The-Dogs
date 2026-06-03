@@ -69,7 +69,7 @@ CREATE TABLE refresh_token (
     family_id   UUID NOT NULL,
     parent_id   UUID REFERENCES refresh_token(id) ON DELETE SET NULL,
     user_id     UUID NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
-    token_hash  CHAR(64) NOT NULL UNIQUE,   -- hex SHA-256
+    token_hash  VARCHAR(64) NOT NULL UNIQUE,   -- hex SHA-256; VARCHAR preferred over CHAR for portability
     issued_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     expires_at  TIMESTAMPTZ NOT NULL,
     used_at     TIMESTAMPTZ,

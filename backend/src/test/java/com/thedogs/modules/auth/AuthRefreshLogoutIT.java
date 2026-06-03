@@ -250,10 +250,7 @@ class AuthRefreshLogoutIT {
         .perform(post(REFRESH_URL).cookie(new Cookie(REFRESH_COOKIE_NAME, originalCookieValue)))
         .andExpect(status().isUnauthorized())
         .andExpect(
-            header()
-                .string(
-                    "Set-Cookie",
-                    org.hamcrest.Matchers.containsString("Max-Age=0")));
+            header().string("Set-Cookie", org.hamcrest.Matchers.containsString("Max-Age=0")));
   }
 
   // ---------------------------------------------------------------------------
@@ -630,15 +627,12 @@ class AuthRefreshLogoutIT {
     statuses.add(future2.get());
     executor.shutdown();
 
-    long successCount =
-        statuses.stream().filter(s -> s == HttpStatus.OK.value()).count();
+    long successCount = statuses.stream().filter(s -> s == HttpStatus.OK.value()).count();
     long unauthorizedCount =
         statuses.stream().filter(s -> s == HttpStatus.UNAUTHORIZED.value()).count();
 
     assertThat(successCount)
-        .as(
-            "Exactly one concurrent refresh request must succeed (200); got statuses: "
-                + statuses)
+        .as("Exactly one concurrent refresh request must succeed (200); got statuses: " + statuses)
         .isEqualTo(1);
     assertThat(unauthorizedCount)
         .as(

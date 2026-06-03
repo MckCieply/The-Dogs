@@ -26,10 +26,11 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>Uses a real Testcontainers PostgreSQL database via the {@code tc:} JDBC URL configured in
  * {@code application-test.yml}. No {@code @Transactional} at class level — tests manipulate DB
- * state directly and clean up in {@code @AfterEach}, mirroring the approach in
- * {@link AuthRefreshLogoutIT}.
+ * state directly and clean up in {@code @AfterEach}, mirroring the approach in {@link
+ * AuthRefreshLogoutIT}.
  *
  * <p>Covers:
+ *
  * <ul>
  *   <li>{@code findActiveByHash} — active, used, revoked, expired variants
  *   <li>{@code findByTokenHash} — always finds a row regardless of state (theft detection read)
@@ -139,9 +140,7 @@ class RefreshTokenRepositoryIT {
 
     Optional<RefreshToken> result = refreshTokenRepository.findActiveByHash(hash, Instant.now());
 
-    assertThat(result)
-        .as("findActiveByHash must return empty when revokedAt is set")
-        .isEmpty();
+    assertThat(result).as("findActiveByHash must return empty when revokedAt is set").isEmpty();
   }
 
   @Test
@@ -183,9 +182,7 @@ class RefreshTokenRepositoryIT {
 
     Optional<RefreshToken> result = refreshTokenRepository.findByTokenHash(hash);
 
-    assertThat(result)
-        .as("findByTokenHash must find an active token")
-        .isPresent();
+    assertThat(result).as("findByTokenHash must find an active token").isPresent();
   }
 
   @Test
@@ -199,7 +196,8 @@ class RefreshTokenRepositoryIT {
     Optional<RefreshToken> result = refreshTokenRepository.findByTokenHash(hash);
 
     assertThat(result)
-        .as("findByTokenHash must still find a token even after it has been used (needed for theft detection)")
+        .as(
+            "findByTokenHash must still find a token even after it has been used (needed for theft detection)")
         .isPresent();
     assertThat(result.get().getUsedAt())
         .as("The returned token must have usedAt populated")
@@ -234,9 +232,7 @@ class RefreshTokenRepositoryIT {
 
     Optional<RefreshToken> result = refreshTokenRepository.findByTokenHash(hash);
 
-    assertThat(result)
-        .as("findByTokenHash must still find a token that has expired")
-        .isPresent();
+    assertThat(result).as("findByTokenHash must still find a token that has expired").isPresent();
   }
 
   @Test
@@ -287,7 +283,8 @@ class RefreshTokenRepositoryIT {
     int updated = refreshTokenRepository.markUsedIfActive(hash, Instant.now());
 
     assertThat(updated)
-        .as("markUsedIfActive must return 0 when the token was already consumed by a prior rotation")
+        .as(
+            "markUsedIfActive must return 0 when the token was already consumed by a prior rotation")
         .isEqualTo(0);
   }
 
@@ -318,9 +315,7 @@ class RefreshTokenRepositoryIT {
 
     int updated = refreshTokenRepository.markUsedIfActive(hash, Instant.now());
 
-    assertThat(updated)
-        .as("markUsedIfActive must return 0 when the token is expired")
-        .isEqualTo(0);
+    assertThat(updated).as("markUsedIfActive must return 0 when the token is expired").isEqualTo(0);
   }
 
   // ---------------------------------------------------------------------------
@@ -372,7 +367,8 @@ class RefreshTokenRepositoryIT {
     List<RefreshToken> active = refreshTokenRepository.findActiveByFamilyId(familyId);
 
     assertThat(active)
-        .as("findActiveByFamilyId must include used-but-not-revoked tokens (revokeFamily must reach them)")
+        .as(
+            "findActiveByFamilyId must include used-but-not-revoked tokens (revokeFamily must reach them)")
         .hasSize(1);
   }
 

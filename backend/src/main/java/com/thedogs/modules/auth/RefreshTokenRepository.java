@@ -57,6 +57,5 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
           + "   AND r.usedAt   IS NULL"
           + "   AND r.revokedAt IS NULL"
           + "   AND r.expiresAt > :now")
-  int markUsedIfActive(
-      @Param("hash") String hash, @Param("now") Instant now);
+  int markUsedIfActive(@Param("hash") String hash, @Param("now") Instant now);
 }
