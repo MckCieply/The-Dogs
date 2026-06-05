@@ -1,0 +1,300 @@
+
+C:\Users\mwppl\Desktop\Code\The-Dogs\backend>SET ERROR_CODE=0 
+
+C:\Users\mwppl\Desktop\Code\The-Dogs\backend>SET MAVEN_WRAPPER_JAR="\.mvn\wrapper\maven-wrapper.jar" 
+
+C:\Users\mwppl\Desktop\Code\The-Dogs\backend>IF "" == "" (
+SET MAVEN_WRAPPER_JAR="C:\Users\mwppl\Desktop\Code\The-Dogs\backend\.mvn\wrapper\maven-wrapper.jar"  
+ SET MAVEN_PROJECTBASEDIR=C:\Users\mwppl\Desktop\Code\The-Dogs\backend\ 
+) 
+
+C:\Users\mwppl\Desktop\Code\The-Dogs\backend>IF "\" == "\" SET "MAVEN_PROJECTBASEDIR=C:\Users\mwppl\Desktop\Code\The-Dogs\backend" 
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] --------------------< com.thedogs:the-dogs-backend >--------------------
+[INFO] Building the-dogs-backend 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ the-dogs-backend ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 3 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.14.0:compile (default-compile) @ the-dogs-backend ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 63 source files with javac [debug parameters release 25] to target\classes
+[INFO] /C:/Users/mwppl/Desktop/Code/The-Dogs/backend/src/main/java/com/thedogs/config/SecurityConfig.java: C:\Users\mwppl\Desktop\Code\The-Dogs\backend\src\main\java\com\thedogs\config\SecurityConfig.java uses or overrides a deprecated API.
+[INFO] /C:/Users/mwppl/Desktop/Code/The-Dogs/backend/src/main/java/com/thedogs/config/SecurityConfig.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ the-dogs-backend ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.14.0:testCompile (default-testCompile) @ the-dogs-backend ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 17 source files with javac [debug parameters release 25] to target\test-classes
+[WARNING] The following options were not recognized by any processor: '[mapstruct.defaultComponentModel]'
+[INFO] /C:/Users/mwppl/Desktop/Code/The-Dogs/backend/src/test/java/com/thedogs/modules/auth/AuthRefreshLogoutIT.java: C:\Users\mwppl\Desktop\Code\The-Dogs\backend\src\test\java\com\thedogs\modules\auth\AuthRefreshLogoutIT.java uses or overrides a deprecated API.
+[INFO] /C:/Users/mwppl/Desktop/Code/The-Dogs/backend/src/test/java/com/thedogs/modules/auth/AuthRefreshLogoutIT.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- surefire:3.5.3:test (default-test) @ the-dogs-backend ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.thedogs.modules.auth.AuthServiceLoginTest
+19:22:15.243 [main] INFO com.thedogs.modules.auth.AuthService -- event=login_failure reason=bad_password emailHash=f5dadd7faf9adc229569d3f300799c9e2b4b229efa08be9448f0be0ab32f2d23 ip=203.0.113.0/24
+19:22:15.257 [main] INFO com.thedogs.modules.auth.AuthService -- event=login_failure reason=account_disabled emailHash=c6f0234de7d3505fee88baf14ae80abf1d8c71ea7c2b4281fabf0e17a00de29d ip=203.0.113.0/24
+19:22:15.275 [main] INFO com.thedogs.modules.auth.AuthService -- event=login_failure reason=unknown_email emailHash=e788ea2014693dcdb86767aceb3860a432fc626c6477a6c53016aff40726842b ip=203.0.113.0/24
+19:22:15.287 [main] INFO com.thedogs.modules.auth.AuthService -- event=login_failure reason=unknown_email emailHash=e788ea2014693dcdb86767aceb3860a432fc626c6477a6c53016aff40726842b ip=203.0.113.0/24
+19:22:15.288 [main] INFO com.thedogs.modules.auth.AuthService -- event=login_failure reason=bad_password emailHash=f5dadd7faf9adc229569d3f300799c9e2b4b229efa08be9448f0be0ab32f2d23 ip=203.0.113.0/24
+19:22:15.299 [main] INFO com.thedogs.modules.auth.AuthService -- event=login_success userId=00000000-0000-0000-0000-000000000001 ip=203.0.113.0/24
+19:22:15.321 [main] INFO com.thedogs.modules.auth.AuthService -- event=login_failure reason=unknown_email emailHash=1a4725f081613ebf8731b9dd1f089b50496ee6a8981a9f456121e4a802812ec9 ip=203.0.113.0/24
+19:22:15.331 [main] INFO com.thedogs.modules.auth.AuthService -- event=login_success userId=00000000-0000-0000-0000-000000000001 ip=203.0.113.0/24
+19:22:15.339 [main] INFO com.thedogs.modules.auth.AuthService -- event=login_success userId=00000000-0000-0000-0000-000000000001 ip=203.0.113.0/24
+19:22:15.348 [main] INFO com.thedogs.modules.auth.AuthService -- event=login_failure reason=unknown_email emailHash=1a4725f081613ebf8731b9dd1f089b50496ee6a8981a9f456121e4a802812ec9 ip=203.0.113.0/24
+19:22:15.355 [main] INFO com.thedogs.modules.auth.AuthService -- event=login_failure reason=bad_password emailHash=f5dadd7faf9adc229569d3f300799c9e2b4b229efa08be9448f0be0ab32f2d23 ip=203.0.113.0/24
+19:22:15.364 [main] INFO com.thedogs.modules.auth.AuthService -- event=login_failure reason=account_disabled emailHash=c6f0234de7d3505fee88baf14ae80abf1d8c71ea7c2b4281fabf0e17a00de29d ip=203.0.113.0/24
+19:22:15.373 [main] INFO com.thedogs.modules.auth.AuthService -- event=login_success userId=00000000-0000-0000-0000-000000000001 ip=203.0.113.0/24
+19:22:15.383 [main] INFO com.thedogs.modules.auth.AuthService -- event=login_success userId=00000000-0000-0000-0000-000000000001 ip=203.0.113.0/24
+19:22:15.391 [main] INFO com.thedogs.modules.auth.AuthService -- event=login_success userId=00000000-0000-0000-0000-000000000001 ip=203.0.113.0/24
+19:22:15.409 [main] INFO com.thedogs.modules.auth.AuthService -- event=login_failure reason=unknown_email emailHash=1a4725f081613ebf8731b9dd1f089b50496ee6a8981a9f456121e4a802812ec9 ip=203.0.113.0/24
+[INFO] Tests run: 17, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.245 s -- in com.thedogs.modules.auth.AuthServiceLoginTest
+[INFO] Running com.thedogs.modules.auth.IpAddressExtractorTest
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.033 s -- in com.thedogs.modules.auth.IpAddressExtractorTest
+[INFO] Running com.thedogs.modules.auth.LoginRateLimiterTest
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.065 s -- in com.thedogs.modules.auth.LoginRateLimiterTest
+[INFO] Running com.thedogs.modules.auth.RefreshTokenServiceTest
+19:22:15.636 [main] INFO com.thedogs.modules.auth.RefreshTokenService -- event=refresh_family_revoked familyId=00000000-0000-0000-0000-000000000020 count=2
+19:22:15.660 [main] WARN com.thedogs.modules.auth.RefreshTokenService -- event=refresh_token_reuse_detected familyId=00000000-0000-0000-0000-000000000020 userId=00000000-0000-0000-0000-000000000010
+19:22:15.661 [main] INFO com.thedogs.modules.auth.RefreshTokenService -- event=refresh_family_revoked familyId=00000000-0000-0000-0000-000000000020 count=0
+19:22:15.670 [pool-2-thread-1] WARN com.thedogs.modules.auth.RefreshTokenService -- event=refresh_token_reuse_detected familyId=00000000-0000-0000-0000-000000000020 userId=00000000-0000-0000-0000-000000000010
+19:22:15.671 [pool-2-thread-1] INFO com.thedogs.modules.auth.RefreshTokenService -- event=refresh_family_revoked familyId=00000000-0000-0000-0000-000000000020 count=1
+19:22:15.695 [main] INFO com.thedogs.modules.auth.RefreshTokenService -- event=refresh_family_revoked familyId=00000000-0000-0000-0000-000000000020 count=0
+19:22:15.699 [main] WARN com.thedogs.modules.auth.RefreshTokenService -- event=refresh_token_reuse_detected familyId=00000000-0000-0000-0000-000000000020 userId=00000000-0000-0000-0000-000000000010
+19:22:15.700 [main] INFO com.thedogs.modules.auth.RefreshTokenService -- event=refresh_family_revoked familyId=00000000-0000-0000-0000-000000000020 count=1
+[INFO] Tests run: 17, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.182 s -- in com.thedogs.modules.auth.RefreshTokenServiceTest
+[INFO] Running com.thedogs.modules.auth.TokenServiceClaimsTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.618 s -- in com.thedogs.modules.auth.TokenServiceClaimsTest
+[INFO] Running com.thedogs.modules.auth.TokenServiceTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.019 s -- in com.thedogs.modules.auth.TokenServiceTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 61, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.4.2:jar (default-jar) @ the-dogs-backend ---
+[INFO] Building jar: C:\Users\mwppl\Desktop\Code\The-Dogs\backend\target\the-dogs-backend-0.0.1-SNAPSHOT.jar
+[INFO] 
+[INFO] --- spring-boot:3.5.0:repackage (repackage) @ the-dogs-backend ---
+[INFO] Replacing main artifact C:\Users\mwppl\Desktop\Code\The-Dogs\backend\target\the-dogs-backend-0.0.1-SNAPSHOT.jar with repackaged archive, adding nested dependencies in BOOT-INF/.
+[INFO] The original artifact has been renamed to C:\Users\mwppl\Desktop\Code\The-Dogs\backend\target\the-dogs-backend-0.0.1-SNAPSHOT.jar.original
+[INFO] 
+[INFO] --- failsafe:3.5.3:integration-test (default) @ the-dogs-backend ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.thedogs.modules.auth.AuthLoginIT
+19:22:19.778 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.thedogs.modules.auth.AuthLoginIT]: AuthLoginIT does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+19:22:20.009 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.thedogs.ThedogsApplication for test class com.thedogs.modules.auth.AuthLoginIT
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.0)
+
+2026-05-30T19:22:20.669+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.thedogs.modules.auth.AuthLoginIT     : Starting AuthLoginIT using Java 25.0.3 with PID 35752 (started by mwppl in C:\Users\mwppl\Desktop\Code\The-Dogs\backend)
+2026-05-30T19:22:20.671+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.thedogs.modules.auth.AuthLoginIT     : The following 1 profile is active: "test"
+2026-05-30T19:22:21.768+02:00  INFO 35752 --- [the-dogs-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-05-30T19:22:21.894+02:00  INFO 35752 --- [the-dogs-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 111 ms. Found 7 JPA repository interfaces.
+2026-05-30T19:22:23.855+02:00  INFO 35752 --- [the-dogs-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 0 (http)
+2026-05-30T19:22:23.875+02:00  INFO 35752 --- [the-dogs-backend] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-05-30T19:22:23.877+02:00  INFO 35752 --- [the-dogs-backend] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.41]
+2026-05-30T19:22:23.978+02:00  INFO 35752 --- [the-dogs-backend] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-05-30T19:22:23.979+02:00  INFO 35752 --- [the-dogs-backend] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 3284 ms
+2026-05-30T19:22:24.625+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-05-30T19:22:24.904+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@62f37bfd
+2026-05-30T19:22:24.908+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-05-30T19:22:24.946+02:00  INFO 35752 --- [the-dogs-backend] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:5432/thedogs_test (PostgreSQL 16.0)
+2026-05-30T19:22:25.027+02:00  INFO 35752 --- [the-dogs-backend] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 3 migrations (execution time 00:00.047s)
+2026-05-30T19:22:25.059+02:00  INFO 35752 --- [the-dogs-backend] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 3
+2026-05-30T19:22:25.066+02:00  INFO 35752 --- [the-dogs-backend] [           main] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2026-05-30T19:22:25.713+02:00  WARN 35752 --- [the-dogs-backend] [           main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-05-30T19:22:27.681+02:00  INFO 35752 --- [the-dogs-backend] [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-05-30T19:22:29.075+02:00  WARN 35752 --- [the-dogs-backend] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-05-30T19:22:29.538+02:00  INFO 35752 --- [the-dogs-backend] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-05-30T19:22:29.586+02:00  INFO 35752 --- [the-dogs-backend] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name userService
+2026-05-30T19:22:30.589+02:00  INFO 35752 --- [the-dogs-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 62069 (http) with context path '/'
+2026-05-30T19:22:30.616+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.thedogs.modules.auth.AuthLoginIT     : Started AuthLoginIT in 10.405 seconds (process running for 11.935)
+2026-05-30T19:22:32.157+02:00  INFO 35752 --- [the-dogs-backend] [     virtual-59] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-05-30T19:22:32.158+02:00  INFO 35752 --- [the-dogs-backend] [     virtual-59] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-05-30T19:22:32.159+02:00  INFO 35752 --- [the-dogs-backend] [     virtual-59] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+2026-05-30T19:22:32.555+02:00  INFO 35752 --- [the-dogs-backend] [     virtual-59] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=198.51.100.0/24
+2026-05-30T19:22:32.906+02:00  INFO 35752 --- [the-dogs-backend] [     virtual-65] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=198.51.100.0/24
+2026-05-30T19:22:33.176+02:00  INFO 35752 --- [the-dogs-backend] [     virtual-67] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=198.51.100.0/24
+2026-05-30T19:22:33.450+02:00  INFO 35752 --- [the-dogs-backend] [     virtual-69] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=198.51.100.0/24
+2026-05-30T19:22:33.723+02:00  INFO 35752 --- [the-dogs-backend] [     virtual-71] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=198.51.100.0/24
+2026-05-30T19:22:35.330+02:00  INFO 35752 --- [the-dogs-backend] [     virtual-76] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=198.51.100.0/24
+2026-05-30T19:22:35.604+02:00  INFO 35752 --- [the-dogs-backend] [     virtual-78] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=198.51.100.0/24
+2026-05-30T19:22:35.871+02:00  INFO 35752 --- [the-dogs-backend] [     virtual-80] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=198.51.100.0/24
+2026-05-30T19:22:36.143+02:00  INFO 35752 --- [the-dogs-backend] [     virtual-83] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=198.51.100.0/24
+2026-05-30T19:22:36.413+02:00  INFO 35752 --- [the-dogs-backend] [     virtual-85] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=198.51.100.0/24
+2026-05-30T19:22:37.256+02:00  INFO 35752 --- [the-dogs-backend] [     virtual-89] com.thedogs.modules.auth.AuthService     : event=login_success userId=2b399dce-aafb-48e4-9cd4-8eb797e8ccb3 ip=127.0.0.0/24
+2026-05-30T19:22:38.760+02:00  INFO 35752 --- [the-dogs-backend] [     virtual-92] com.thedogs.modules.auth.AuthService     : event=login_success userId=1ac5d682-8639-4f14-8402-c287934d7a78 ip=127.0.0.0/24
+2026-05-30T19:22:39.603+02:00  INFO 35752 --- [the-dogs-backend] [     virtual-95] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=127.0.0.0/24
+2026-05-30T19:22:40.430+02:00  INFO 35752 --- [the-dogs-backend] [     virtual-97] com.thedogs.modules.auth.AuthService     : event=login_failure reason=unknown_email emailHash=e788ea2014693dcdb86767aceb3860a432fc626c6477a6c53016aff40726842b ip=127.0.0.0/24
+2026-05-30T19:22:40.702+02:00  INFO 35752 --- [the-dogs-backend] [     virtual-99] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=127.0.0.0/24
+2026-05-30T19:22:41.515+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-100] com.thedogs.modules.auth.AuthService     : event=login_success userId=78675d15-ea77-4bda-9620-866bdd416725 ip=127.0.0.0/24
+2026-05-30T19:22:42.356+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-103] com.thedogs.modules.auth.AuthService     : event=login_success userId=12f0d964-a4f1-482e-b119-b4099af56e9f ip=127.0.0.0/24
+2026-05-30T19:22:43.536+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-106] com.thedogs.modules.auth.AuthService     : event=login_failure reason=account_disabled emailHash=a9bba32cc5fa1a2eef114011f730e892401924721796397defb93e3ff6054708 ip=127.0.0.0/24
+2026-05-30T19:22:44.364+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-109] com.thedogs.modules.auth.AuthService     : event=login_success userId=93d8087a-d528-47b7-be4d-bbb4766a5eef ip=127.0.0.0/24
+2026-05-30T19:22:45.633+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-111] com.thedogs.modules.auth.AuthService     : event=login_success userId=a738186d-f624-460f-9666-846e49cbf6ea ip=127.0.0.0/24
+2026-05-30T19:22:46.465+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-113] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=198.51.100.0/24
+2026-05-30T19:22:46.733+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-115] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=198.51.100.0/24
+2026-05-30T19:22:47.004+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-117] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=198.51.100.0/24
+2026-05-30T19:22:47.275+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-119] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=198.51.100.0/24
+2026-05-30T19:22:47.544+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-121] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=198.51.100.0/24
+2026-05-30T19:22:48.373+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-125] com.thedogs.modules.auth.AuthService     : event=login_success userId=a4b815e2-ab9d-4bcb-9a6f-cb9638e5becb ip=127.0.0.0/24
+2026-05-30T19:22:48.942+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-127] com.thedogs.modules.auth.AuthService     : event=login_failure reason=account_disabled emailHash=a9bba32cc5fa1a2eef114011f730e892401924721796397defb93e3ff6054708 ip=127.0.0.0/24
+2026-05-30T19:22:49.774+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-129] com.thedogs.modules.auth.AuthService     : event=login_success userId=f34bcc8c-ad15-42a2-8286-8bcdff152c86 ip=127.0.0.0/24
+2026-05-30T19:22:50.597+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-131] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=127.0.0.0/24
+2026-05-30T19:22:52.545+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-134] com.thedogs.modules.auth.AuthService     : event=login_failure reason=unknown_email emailHash=e788ea2014693dcdb86767aceb3860a432fc626c6477a6c53016aff40726842b ip=127.0.0.0/24
+2026-05-30T19:22:53.371+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-136] com.thedogs.modules.auth.AuthService     : event=login_failure reason=unknown_email emailHash=e788ea2014693dcdb86767aceb3860a432fc626c6477a6c53016aff40726842b ip=127.0.0.0/24
+2026-05-30T19:22:54.195+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-138] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=127.0.0.0/24
+2026-05-30T19:22:55.024+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-141] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=198.51.100.0/24
+2026-05-30T19:22:55.292+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-143] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=198.51.100.0/24
+2026-05-30T19:22:55.559+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-144] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=198.51.100.0/24
+2026-05-30T19:22:55.830+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-147] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=198.51.100.0/24
+2026-05-30T19:22:56.102+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-148] com.thedogs.modules.auth.AuthService     : event=login_failure reason=bad_password emailHash=1cab9465383c013f339d91cfa32030bb091791b8dbecce5684f12f57d547de33 ip=198.51.100.0/24
+2026-05-30T19:22:56.926+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-152] com.thedogs.modules.auth.AuthService     : event=login_success userId=a0e9b7dc-6e8a-4e08-a865-c9a64d697b89 ip=127.0.0.0/24
+2026-05-30T19:22:57.762+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-154] com.thedogs.modules.auth.AuthService     : event=login_success userId=99d16f10-b260-42d2-a19d-05bf75385647 ip=127.0.0.0/24
+2026-05-30T19:22:58.579+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-156] com.thedogs.modules.auth.AuthService     : event=login_success userId=105d5540-3771-4391-903b-cd21c3a56e3e ip=127.0.0.0/24
+2026-05-30T19:22:59.403+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-159] com.thedogs.modules.auth.AuthService     : event=login_success userId=db968215-f3f5-4d40-bb9e-93300192e1f6 ip=127.0.0.0/24
+2026-05-30T19:23:00.231+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-161] com.thedogs.modules.auth.AuthService     : event=login_success userId=1fc87d60-fef3-44f8-b5bb-2b795f640da9 ip=127.0.0.0/24
+2026-05-30T19:23:01.054+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-163] com.thedogs.modules.auth.AuthService     : event=login_success userId=ad3853bb-eca6-4ce6-9fcc-ae39f1ca6b46 ip=127.0.0.0/24
+[INFO] Tests run: 31, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 41.52 s -- in com.thedogs.modules.auth.AuthLoginIT
+[INFO] Running com.thedogs.modules.auth.AuthRefreshLogoutIT
+2026-05-30T19:23:01.093+02:00  INFO 35752 --- [the-dogs-backend] [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [com.thedogs.modules.auth.AuthRefreshLogoutIT]: AuthRefreshLogoutIT does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-05-30T19:23:01.103+02:00  INFO 35752 --- [the-dogs-backend] [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration com.thedogs.ThedogsApplication for test class com.thedogs.modules.auth.AuthRefreshLogoutIT
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.0)
+
+2026-05-30T19:23:01.158+02:00  INFO 35752 --- [the-dogs-backend] [           main] c.t.modules.auth.AuthRefreshLogoutIT     : Starting AuthRefreshLogoutIT using Java 25.0.3 with PID 35752 (started by mwppl in C:\Users\mwppl\Desktop\Code\The-Dogs\backend)
+2026-05-30T19:23:01.158+02:00  INFO 35752 --- [the-dogs-backend] [           main] c.t.modules.auth.AuthRefreshLogoutIT     : The following 1 profile is active: "test"
+2026-05-30T19:23:01.698+02:00  INFO 35752 --- [the-dogs-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-05-30T19:23:01.753+02:00  INFO 35752 --- [the-dogs-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 52 ms. Found 7 JPA repository interfaces.
+2026-05-30T19:23:02.036+02:00  INFO 35752 --- [the-dogs-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 0 (http)
+2026-05-30T19:23:02.038+02:00  INFO 35752 --- [the-dogs-backend] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-05-30T19:23:02.039+02:00  INFO 35752 --- [the-dogs-backend] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.41]
+2026-05-30T19:23:02.086+02:00  INFO 35752 --- [the-dogs-backend] [           main] o.a.c.c.C.[Tomcat-1].[localhost].[/]     : Initializing Spring embedded WebApplicationContext
+2026-05-30T19:23:02.087+02:00  INFO 35752 --- [the-dogs-backend] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 926 ms
+2026-05-30T19:23:02.191+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Starting...
+2026-05-30T19:23:02.229+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-2 - Added connection org.postgresql.jdbc.PgConnection@337c7b3f
+2026-05-30T19:23:02.230+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Start completed.
+2026-05-30T19:23:02.232+02:00  INFO 35752 --- [the-dogs-backend] [           main] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:5432/thedogs_test (PostgreSQL 16.0)
+2026-05-30T19:23:02.255+02:00  INFO 35752 --- [the-dogs-backend] [           main] o.f.core.internal.command.DbValidate     : Successfully validated 3 migrations (execution time 00:00.013s)
+2026-05-30T19:23:02.302+02:00  INFO 35752 --- [the-dogs-backend] [           main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 3
+2026-05-30T19:23:02.303+02:00  INFO 35752 --- [the-dogs-backend] [           main] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2026-05-30T19:23:02.364+02:00  WARN 35752 --- [the-dogs-backend] [           main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-05-30T19:23:02.989+02:00  WARN 35752 --- [the-dogs-backend] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-05-30T19:23:03.102+02:00  INFO 35752 --- [the-dogs-backend] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-05-30T19:23:03.116+02:00  INFO 35752 --- [the-dogs-backend] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name userService
+2026-05-30T19:23:03.321+02:00  INFO 35752 --- [the-dogs-backend] [           main] o.a.c.c.C.[Tomcat-1].[localhost].[/]     : Initializing Spring TestDispatcherServlet ''
+2026-05-30T19:23:03.322+02:00  INFO 35752 --- [the-dogs-backend] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-05-30T19:23:03.324+02:00  INFO 35752 --- [the-dogs-backend] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 2 ms
+2026-05-30T19:23:03.357+02:00  INFO 35752 --- [the-dogs-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 62083 (http) with context path '/'
+2026-05-30T19:23:03.364+02:00  INFO 35752 --- [the-dogs-backend] [           main] c.t.modules.auth.AuthRefreshLogoutIT     : Started AuthRefreshLogoutIT in 2.254 seconds (process running for 44.684)
+2026-05-30T19:23:03.971+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.thedogs.modules.auth.AuthService     : event=login_success userId=ee846b11-c249-4019-87eb-f88443e0078e ip=127.0.0.0/24
+2026-05-30T19:23:04.052+02:00  WARN 35752 --- [the-dogs-backend] [           main] c.t.modules.auth.RefreshTokenService     : event=refresh_token_reuse_detected familyId=16c60abe-e057-4045-8e95-d303fc061477 userId=ee846b11-c249-4019-87eb-f88443e0078e
+2026-05-30T19:23:04.066+02:00  INFO 35752 --- [the-dogs-backend] [           main] c.t.modules.auth.RefreshTokenService     : event=refresh_family_revoked familyId=16c60abe-e057-4045-8e95-d303fc061477 count=2
+2026-05-30T19:23:04.697+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.thedogs.modules.auth.AuthService     : event=login_success userId=e7aa20d2-4848-4c61-a9b8-38a51d5bc634 ip=127.0.0.0/24
+2026-05-30T19:23:04.710+02:00  INFO 35752 --- [the-dogs-backend] [           main] c.t.modules.auth.RefreshTokenService     : event=refresh_family_revoked familyId=7f439c35-3bdb-4a13-9c2a-2625d96bcd62 count=1
+2026-05-30T19:23:05.289+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.thedogs.modules.auth.AuthService     : event=login_success userId=6d980177-9acf-4b1f-9aed-227654a0c2dc ip=127.0.0.0/24
+2026-05-30T19:23:05.852+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.thedogs.modules.auth.AuthService     : event=login_success userId=a24d00ba-7c5f-48d1-8b0f-4a059ef1468c ip=127.0.0.0/24
+2026-05-30T19:23:05.865+02:00  INFO 35752 --- [the-dogs-backend] [           main] c.t.modules.auth.RefreshTokenService     : event=refresh_family_revoked familyId=daed2bcb-10c6-44f3-88fa-aa98e70e3aed count=1
+2026-05-30T19:23:06.726+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.thedogs.modules.auth.AuthService     : event=login_success userId=4bf03ba2-0900-4fa1-96e8-63c80415884d ip=127.0.0.0/24
+2026-05-30T19:23:07.296+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.thedogs.modules.auth.AuthService     : event=login_success userId=bc56b2a7-bfaf-4bcf-a9ca-0206d2f510b0 ip=127.0.0.0/24
+2026-05-30T19:23:07.304+02:00 TRACE 35752 --- [the-dogs-backend] [           main] _.springframework.web.util.RfcUriParser  : START -> HOST_OR_PATH, index=0, componentIndex=0
+2026-05-30T19:23:07.304+02:00 TRACE 35752 --- [the-dogs-backend] [           main] _.springframework.web.util.RfcUriParser  : HOST_OR_PATH -> PATH, index=1, componentIndex=0
+2026-05-30T19:23:07.304+02:00 TRACE 35752 --- [the-dogs-backend] [           main] _.springframework.web.util.RfcUriParser  : path set to '/api/v1/auth/refresh'
+2026-05-30T19:23:07.304+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.b.f.s.DefaultListableBeanFactory     : Returning cached instance of singleton bean 'flashMapManager'
+2026-05-30T19:23:07.306+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.b.w.s.f.OrderedRequestContextFilter  : Bound request context to thread: org.springframework.mock.web.MockHttpServletRequest@27463e56
+2026-05-30T19:23:07.306+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.b.f.s.DefaultListableBeanFactory     : Returning cached instance of singleton bean 'authController'
+2026-05-30T19:23:07.307+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.security.web.FilterChainProxy        : Trying to match request against DefaultSecurityFilterChain defined as 'securityFilterChain' in [class path resource [com/thedogs/config/SecurityConfig.class]] matching [any request] and having filters [DisableEncodeUrl, WebAsyncManagerIntegration, SecurityContextHolder, HeaderWriter, Logout, BearerTokenAuthentication, Authentication, RequestCacheAware, SecurityContextHolderAwareRequest, AnonymousAuthentication, SessionManagement, ExceptionTranslation, Authorization] (1/1)
+2026-05-30T19:23:07.307+02:00 DEBUG 35752 --- [the-dogs-backend] [           main] o.s.security.web.FilterChainProxy        : Securing POST /api/v1/auth/refresh
+2026-05-30T19:23:07.307+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.security.web.FilterChainProxy        : Invoking DisableEncodeUrlFilter (1/13)
+2026-05-30T19:23:07.308+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.security.web.FilterChainProxy        : Invoking WebAsyncManagerIntegrationFilter (2/13)
+2026-05-30T19:23:07.308+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.security.web.FilterChainProxy        : Invoking SecurityContextHolderFilter (3/13)
+2026-05-30T19:23:07.308+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.security.web.FilterChainProxy        : Invoking HeaderWriterFilter (4/13)
+2026-05-30T19:23:07.308+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.security.web.FilterChainProxy        : Invoking LogoutFilter (5/13)
+2026-05-30T19:23:07.308+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.s.w.a.logout.LogoutFilter            : Did not match request to Or [Ant [pattern='/logout', GET], Ant [pattern='/logout', POST], Ant [pattern='/logout', PUT], Ant [pattern='/logout', DELETE]]
+2026-05-30T19:23:07.308+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.security.web.FilterChainProxy        : Invoking BearerTokenAuthenticationFilter (6/13)
+2026-05-30T19:23:07.308+02:00 TRACE 35752 --- [the-dogs-backend] [           main] .s.r.w.a.BearerTokenAuthenticationFilter : Did not process request since did not find bearer token
+2026-05-30T19:23:07.308+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.security.web.FilterChainProxy        : Invoking AuthenticationFilter (7/13)
+2026-05-30T19:23:07.309+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.s.w.a.AuthenticationFilter           : Did not match request to org.springframework.security.config.annotation.web.configurers.oauth2.server.resource.DPoPAuthenticationConfigurer$DPoPRequestMatcher@2e2d04d7
+2026-05-30T19:23:07.309+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.security.web.FilterChainProxy        : Invoking RequestCacheAwareFilter (8/13)
+2026-05-30T19:23:07.309+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.security.web.FilterChainProxy        : Invoking SecurityContextHolderAwareRequestFilter (9/13)
+2026-05-30T19:23:07.309+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.security.web.FilterChainProxy        : Invoking AnonymousAuthenticationFilter (10/13)
+2026-05-30T19:23:07.309+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.security.web.FilterChainProxy        : Invoking SessionManagementFilter (11/13)
+2026-05-30T19:23:07.309+02:00 TRACE 35752 --- [the-dogs-backend] [           main] .s.s.w.c.SupplierDeferredSecurityContext : Created SecurityContextImpl [Null authentication]
+2026-05-30T19:23:07.311+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.s.w.a.AnonymousAuthenticationFilter  : Set SecurityContextHolder to AnonymousAuthenticationToken [Principal=anonymousUser, Credentials=[PROTECTED], Authenticated=true, Details=WebAuthenticationDetails [RemoteIpAddress=127.0.0.1, SessionId=null], Granted Authorities=[ROLE_ANONYMOUS]]
+2026-05-30T19:23:07.311+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.security.web.FilterChainProxy        : Invoking ExceptionTranslationFilter (12/13)
+2026-05-30T19:23:07.311+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.security.web.FilterChainProxy        : Invoking AuthorizationFilter (13/13)
+2026-05-30T19:23:07.311+02:00 TRACE 35752 --- [the-dogs-backend] [           main] estMatcherDelegatingAuthorizationManager : Authorizing POST /api/v1/auth/refresh
+2026-05-30T19:23:07.312+02:00 TRACE 35752 --- [the-dogs-backend] [           main] estMatcherDelegatingAuthorizationManager : Checking authorization on POST /api/v1/auth/refresh using org.springframework.security.authorization.SingleResultAuthorizationManager@4f21e216
+2026-05-30T19:23:07.312+02:00 DEBUG 35752 --- [the-dogs-backend] [           main] o.s.security.web.FilterChainProxy        : Secured POST /api/v1/auth/refresh
+2026-05-30T19:23:07.313+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.t.web.servlet.TestDispatcherServlet  : POST "/api/v1/auth/refresh", parameters={}, headers={masked} in DispatcherServlet ''
+2026-05-30T19:23:07.313+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.b.f.s.DefaultListableBeanFactory     : Returning cached instance of singleton bean 'authController'
+2026-05-30T19:23:07.314+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.web.method.HandlerMethod             : Arguments: [SecurityContextHolderAwareRequestWrapper[ org.springframework.security.web.header.HeaderWriterFilter$HeaderWriterRequest@1d4e554f], org.springframework.web.context.request.async.StandardServletAsyncWebRequest$LifecycleHttpServletResponse@5c5eec57]
+2026-05-30T19:23:07.314+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.t.i.TransactionInterceptor           : Getting transaction for [com.thedogs.modules.auth.AuthService.refresh]
+2026-05-30T19:23:07.314+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.t.i.TransactionInterceptor           : Getting transaction for [com.thedogs.modules.auth.RefreshTokenService.rotateToken]
+2026-05-30T19:23:07.315+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.t.i.TransactionInterceptor           : No need to create transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findByTokenHash]: This method is not transactional.
+2026-05-30T19:23:07.317+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.t.i.TransactionInterceptor           : No need to create transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.markUsedIfActive]: This method is not transactional.
+2026-05-30T19:23:07.320+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.t.i.TransactionInterceptor           : Getting transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.save]
+2026-05-30T19:23:07.321+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.t.i.TransactionInterceptor           : Completing transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.save]
+2026-05-30T19:23:07.322+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.t.i.TransactionInterceptor           : Completing transaction for [com.thedogs.modules.auth.RefreshTokenService.rotateToken]
+2026-05-30T19:23:07.322+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.t.i.TransactionInterceptor           : Getting transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findById]
+2026-05-30T19:23:07.324+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.t.i.TransactionInterceptor           : Completing transaction for [org.springframework.data.jpa.repository.support.SimpleJpaRepository.findById]
+2026-05-30T19:23:07.324+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.t.i.TransactionInterceptor           : Completing transaction for [com.thedogs.modules.auth.AuthService.refresh]
+2026-05-30T19:23:07.327+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.s.w.header.writers.HstsHeaderWriter  : Not injecting HSTS header since it did not match request to [Is Secure]
+2026-05-30T19:23:07.328+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.t.web.servlet.TestDispatcherServlet  : No view rendering, null ModelAndView returned.
+2026-05-30T19:23:07.328+02:00 DEBUG 35752 --- [the-dogs-backend] [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed 200 OK, headers={masked}
+2026-05-30T19:23:07.328+02:00 TRACE 35752 --- [the-dogs-backend] [           main] o.s.b.w.s.f.OrderedRequestContextFilter  : Cleared thread-bound request context: org.springframework.mock.web.MockHttpServletRequest@27463e56
+2026-05-30T19:23:07.917+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.thedogs.modules.auth.AuthService     : event=login_success userId=3125e8f7-9c9e-43f0-b9a0-90dae0f5698c ip=127.0.0.0/24
+2026-05-30T19:23:07.931+02:00  INFO 35752 --- [the-dogs-backend] [           main] c.t.modules.auth.RefreshTokenService     : event=refresh_family_revoked familyId=f240ce6a-ae28-42ff-b0e8-55951c44e0d5 count=1
+2026-05-30T19:23:08.504+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.thedogs.modules.auth.AuthService     : event=login_success userId=44358ed2-de25-4a69-a697-3a2648066aa5 ip=127.0.0.0/24
+2026-05-30T19:23:08.527+02:00  WARN 35752 --- [the-dogs-backend] [           main] c.t.modules.auth.RefreshTokenService     : event=refresh_token_reuse_detected familyId=2db51325-3006-497f-9524-7b36d0bb9105 userId=44358ed2-de25-4a69-a697-3a2648066aa5
+2026-05-30T19:23:08.529+02:00  INFO 35752 --- [the-dogs-backend] [           main] c.t.modules.auth.RefreshTokenService     : event=refresh_family_revoked familyId=2db51325-3006-497f-9524-7b36d0bb9105 count=2
+2026-05-30T19:23:09.381+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.thedogs.modules.auth.AuthService     : event=login_success userId=7ff83a1a-f692-46b7-8b01-7e5224a17215 ip=127.0.0.0/24
+2026-05-30T19:23:09.392+02:00  INFO 35752 --- [the-dogs-backend] [           main] c.t.modules.auth.RefreshTokenService     : event=refresh_family_revoked familyId=28b99931-bef6-45db-92f1-e6fd20620301 count=1
+2026-05-30T19:23:09.940+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.thedogs.modules.auth.AuthService     : event=login_success userId=0699d6d4-7053-499b-8884-faa25c234d61 ip=127.0.0.0/24
+2026-05-30T19:23:10.496+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.thedogs.modules.auth.AuthService     : event=login_success userId=21dc9d7a-e436-437c-9d3d-0abf950bc577 ip=127.0.0.0/24
+2026-05-30T19:23:10.509+02:00  INFO 35752 --- [the-dogs-backend] [           main] c.t.modules.auth.RefreshTokenService     : event=refresh_family_revoked familyId=aa81dac6-3cef-4e0e-9f51-f274bad624e0 count=1
+2026-05-30T19:23:11.073+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.thedogs.modules.auth.AuthService     : event=login_success userId=bd4602ac-d804-4771-9160-e97bf6df971c ip=127.0.0.0/24
+2026-05-30T19:23:11.645+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.thedogs.modules.auth.AuthService     : event=login_success userId=47fa5dff-ad57-4b09-9407-821a6c691931 ip=127.0.0.0/24
+2026-05-30T19:23:11.665+02:00  WARN 35752 --- [the-dogs-backend] [           main] c.t.modules.auth.RefreshTokenService     : event=refresh_token_reuse_detected familyId=17baddca-d17e-4f85-a0a8-10d85d44d34f userId=47fa5dff-ad57-4b09-9407-821a6c691931
+2026-05-30T19:23:11.668+02:00  INFO 35752 --- [the-dogs-backend] [           main] c.t.modules.auth.RefreshTokenService     : event=refresh_family_revoked familyId=17baddca-d17e-4f85-a0a8-10d85d44d34f count=2
+2026-05-30T19:23:12.217+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.thedogs.modules.auth.AuthService     : event=login_success userId=4b9dae28-20d9-4317-ac25-79dca9278b90 ip=127.0.0.0/24
+2026-05-30T19:23:12.782+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.thedogs.modules.auth.AuthService     : event=login_success userId=c3be529f-4d2d-4c7f-b12f-47971b311b6f ip=127.0.0.0/24
+2026-05-30T19:23:13.345+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.thedogs.modules.auth.AuthService     : event=login_success userId=04d62572-8990-4579-8872-5b7e87538849 ip=127.0.0.0/24
+2026-05-30T19:23:14.494+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.thedogs.modules.auth.AuthService     : event=login_success userId=31f6d1bc-2db2-4b47-81f0-78ffb233beb2 ip=127.0.0.0/24
+2026-05-30T19:23:15.065+02:00  INFO 35752 --- [the-dogs-backend] [           main] com.thedogs.modules.auth.AuthService     : event=login_success userId=08da8a7b-5513-4ff9-91bc-d0fdd43315af ip=127.0.0.0/24
+2026-05-30T19:23:15.080+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-181] o.a.c.c.C.[Tomcat-1].[localhost].[/]     : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-05-30T19:23:15.080+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-181] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-05-30T19:23:15.080+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-181] o.s.web.servlet.DispatcherServlet        : Completed initialization in 0 ms
+2026-05-30T19:23:15.095+02:00  WARN 35752 --- [the-dogs-backend] [    virtual-182] c.t.modules.auth.RefreshTokenService     : event=refresh_token_reuse_detected familyId=a7ac6361-7b90-47db-aeb8-cd314fba8825 userId=08da8a7b-5513-4ff9-91bc-d0fdd43315af
+2026-05-30T19:23:15.097+02:00  INFO 35752 --- [the-dogs-backend] [    virtual-182] c.t.modules.auth.RefreshTokenService     : event=refresh_family_revoked familyId=a7ac6361-7b90-47db-aeb8-cd314fba8825 count=2
