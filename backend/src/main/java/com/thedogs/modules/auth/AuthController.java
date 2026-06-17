@@ -72,7 +72,9 @@ public class AuthController {
       description =
           "Revokes the refresh token family associated with the cookie and clears the Set-Cookie. Idempotent — safe to call without active auth state; always returns 204.")
   @ApiResponses({
-    @ApiResponse(responseCode = "204", description = "Logged out; Set-Cookie: refresh_token cleared")
+    @ApiResponse(
+        responseCode = "204",
+        description = "Logged out; Set-Cookie: refresh_token cleared")
   })
   @PostMapping("/logout")
   public ResponseEntity<Void> logout(HttpServletRequest request) {
