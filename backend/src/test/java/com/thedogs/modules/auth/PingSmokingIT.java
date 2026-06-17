@@ -180,7 +180,6 @@ class PingSmokingIT {
     Instant past = Instant.now().minus(1, ChronoUnit.HOURS);
     return Jwts.builder()
         .subject(user.getId().toString())
-        .claim("email", user.getEmail())
         .claim("roles", List.of("ROLE_TRAINER"))
         .issuedAt(Date.from(past.minus(2, ChronoUnit.HOURS)))
         .expiration(Date.from(past))
@@ -198,7 +197,6 @@ class PingSmokingIT {
     Instant now = Instant.now();
     return Jwts.builder()
         .subject(user.getId().toString())
-        .claim("email", user.getEmail())
         .claim("roles", List.of("ROLE_TRAINER"))
         .issuedAt(Date.from(now))
         .expiration(Date.from(now.plus(15, ChronoUnit.MINUTES)))

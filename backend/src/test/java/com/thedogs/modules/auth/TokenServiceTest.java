@@ -55,7 +55,7 @@ class TokenServiceTest {
 
     Claims claims = tokenService.parseToken(token);
     assertThat(claims.getSubject()).isEqualTo("00000000-0000-0000-0000-000000000001");
-    assertThat(claims.get("email", String.class)).isEqualTo("trainer@example.com");
+    assertThat(claims.get("email")).isNull();
 
     @SuppressWarnings("unchecked")
     List<String> roles = claims.get("roles", List.class);

@@ -48,7 +48,6 @@ public class TokenService {
 
     return Jwts.builder()
         .subject(user.getId().toString())
-        .claim("email", user.getEmail())
         .claim("roles", roles)
         .issuedAt(Date.from(now))
         .expiration(Date.from(now.plus(accessTokenTtlMinutes, ChronoUnit.MINUTES)))

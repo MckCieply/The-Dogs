@@ -61,7 +61,7 @@ public class GlobalExceptionHandler {
     ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
     problem.setType(URI.create(BASE_TYPE + "bad-request"));
     problem.setTitle("Bad Request");
-    problem.setDetail(ex.getMessage());
+    problem.setDetail("The request contains an invalid value.");
     problem.setProperty("errors", List.of(Map.of("code", "field_invalid_format")));
     return problem;
   }
@@ -71,7 +71,7 @@ public class GlobalExceptionHandler {
     ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.CONFLICT);
     problem.setType(URI.create(BASE_TYPE + "conflict"));
     problem.setTitle("Conflict");
-    problem.setDetail(ex.getMessage());
+    problem.setDetail("The operation could not be completed due to a conflict.");
     problem.setProperty("errors", List.of(Map.of("code", "conflict")));
     return problem;
   }

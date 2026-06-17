@@ -19,6 +19,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -81,9 +82,9 @@ public class SecurityConfig {
             auth ->
                 auth
                     // Add explicit paths here; never use a wildcard for /auth/** without review
-                    .requestMatchers("/api/v1/auth/login")
+                    .requestMatchers(HttpMethod.POST, "/api/v1/auth/login")
                     .permitAll()
-                    .requestMatchers("/api/v1/auth/refresh")
+                    .requestMatchers(HttpMethod.POST, "/api/v1/auth/refresh")
                     .permitAll()
                     .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
                     .permitAll()
