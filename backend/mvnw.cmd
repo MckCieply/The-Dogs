@@ -55,6 +55,10 @@ IF "%MAVEN_PROJECTBASEDIR%"=="" (
   SET MAVEN_WRAPPER_JAR="%~dp0.mvn\wrapper\maven-wrapper.jar"
   SET MAVEN_PROJECTBASEDIR=%~dp0
 )
+@REM Strip trailing backslash from MAVEN_PROJECTBASEDIR — a trailing \ before a " in the
+@REM -Dmaven.multiModuleProjectDirectory=...\" arg is treated as an escaped quote by the
+@REM Windows CRT, causing Java to receive no main class and print its help text.
+IF "%MAVEN_PROJECTBASEDIR:~-1%"=="\" SET "MAVEN_PROJECTBASEDIR=%MAVEN_PROJECTBASEDIR:~0,-1%"
 
 @IF EXIST %MAVEN_WRAPPER_JAR% (
     GOTO execute

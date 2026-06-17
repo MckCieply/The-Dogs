@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
  *
  * <ul>
  *   <li>The {@code sub} claim is a valid UUID string matching the user's id
- *   <li>The {@code email} claim is present and correct
+ *   <li>The {@code email} claim is absent (PII must not be embedded in JWT)
  *   <li>The {@code roles} claim is a {@link List}
  *   <li>The {@code exp} claim is set to approximately 15 minutes in the future (within a 2-second
  *       window to account for test execution time)
@@ -79,16 +79,16 @@ class TokenServiceClaimsTest {
   }
 
   // ---------------------------------------------------------------------------
-  // email claim is present
+  // email claim must NOT be in the token (PII — AUTH-02 security requirement)
   // ---------------------------------------------------------------------------
 
   @Test
-  void generateAccessToken_emailClaimMatchesUserEmail() {
+  void generateAccessToken_emailClaimIsAbsent() {
     Claims claims = tokenService.parseToken(tokenService.generateAccessToken(testUser));
 
-    assertThat(claims.get("email", String.class))
-        .as("email claim must match the user's email address")
-        .isEqualTo("claims-test-trainer@example.com");
+    assertThat(claims.get("email"))
+        .as("JWT must not carry the raw email address (PII) — use sub (UUID) to identify the user")
+        .isNull();
   }
 
   // ---------------------------------------------------------------------------

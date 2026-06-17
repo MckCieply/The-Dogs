@@ -6,11 +6,12 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.HexFormat;
 import java.util.List;
-import java.util.UUID;
 import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,8 @@ import org.springframework.stereotype.Service;
 /** Issues and validates HS256 JWT access tokens and opaque refresh tokens. */
 @Service
 public class TokenService {
+
+  private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
   private final SecretKey secretKey;
   private final long accessTokenTtlMinutes;
@@ -45,7 +48,6 @@ public class TokenService {
 
     return Jwts.builder()
         .subject(user.getId().toString())
-        .claim("email", user.getEmail())
         .claim("roles", roles)
         .issuedAt(Date.from(now))
         .expiration(Date.from(now.plus(accessTokenTtlMinutes, ChronoUnit.MINUTES)))
@@ -54,7 +56,10 @@ public class TokenService {
   }
 
   public String generateRefreshToken() {
-    return UUID.randomUUID().toString();
+    byte[] bytes = new byte[32]; // 256 bits
+    SECURE_RANDOM.nextBytes(bytes);
+    return HexFormat.of().formatHex(bytes);
+    // TODO(AUTH-03): persist this token in refresh_token table and add rotation logic
   }
 
   public long getRefreshTokenTtlSeconds() {

@@ -82,8 +82,6 @@ public class SecurityConfig {
             auth ->
                 auth
                     // Add explicit paths here; never use a wildcard for /auth/** without review
-                    .requestMatchers(HttpMethod.GET, "/api/v1/auth/some-public-stub")
-                    .permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/v1/auth/login")
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/v1/auth/refresh")
