@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -574,6 +575,7 @@ class AuthRefreshLogoutIT {
   // ---------------------------------------------------------------------------
 
   @Test
+  @org.junit.jupiter.api.Timeout(value = 30, unit = TimeUnit.SECONDS)
   void refresh_concurrentCallsWithSameToken_producesOneSuccessAndOneTheftDetection()
       throws Exception {
     // Log in to obtain a valid refresh token cookie.
@@ -623,8 +625,8 @@ class AuthRefreshLogoutIT {
             executor);
 
     List<Integer> statuses = new ArrayList<>();
-    statuses.add(future1.get());
-    statuses.add(future2.get());
+    statuses.add(future1.get(25, TimeUnit.SECONDS));
+    statuses.add(future2.get(25, TimeUnit.SECONDS));
     executor.shutdown();
 
     long successCount = statuses.stream().filter(s -> s == HttpStatus.OK.value()).count();
