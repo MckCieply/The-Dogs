@@ -34,13 +34,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -68,15 +63,12 @@ class AuthRefreshLogoutIT {
   private static final String TEST_EMAIL = "refresh-it@example.com";
   private static final String TEST_PASSWORD = "integration-password";
 
-  @LocalServerPort private int port;
-
   @Autowired private MockMvc mockMvc;
   @Autowired private ObjectMapper objectMapper;
   @Autowired private UserRepository userRepository;
   @Autowired private RoleRepository roleRepository;
   @Autowired private PasswordEncoder passwordEncoder;
   @Autowired private RefreshTokenRepository refreshTokenRepository;
-  @Autowired private TestRestTemplate testRestTemplate;
 
   private User testUser;
 
@@ -564,14 +556,12 @@ class AuthRefreshLogoutIT {
   // Concurrent refresh race: two simultaneous requests with the same token →
   // exactly one 200 and exactly one 401 refresh_reused; entire family revoked.
   //
-  // MockMvc is single-threaded per its Servlet-mock design, so this test uses
-  // TestRestTemplate (thread-safe HTTP client against the real embedded server)
-  // to fire two concurrent POST /auth/refresh requests from separate threads.
-  //
-  // The SELECT FOR UPDATE in RefreshTokenService.rotateToken serialises the two
-  // requests at the DB level: whichever thread acquires the lock first rotates
-  // the token; the second thread, once unblocked, re-reads the row and finds
-  // usedAt != null, triggering theft detection and family revocation.
+  // Calls MockMvc.perform() from two threads concurrently. MockMvc is
+  // in-process and fully interruptible (no real socket I/O), so @Timeout
+  // can enforce the deadline. Both threads share the same DispatcherServlet
+  // which is thread-safe; Spring's ThreadLocal-bound transaction infrastructure
+  // ensures each thread gets its own DB transaction, preserving the DB-level
+  // race exercised by markUsedIfActive.
   // ---------------------------------------------------------------------------
 
   @Test
@@ -580,34 +570,22 @@ class AuthRefreshLogoutIT {
       throws Exception {
     // Log in to obtain a valid refresh token cookie.
     String refreshTokenValue = performLoginAndGetRefreshCookie();
+    Cookie refreshCookie = new Cookie(REFRESH_COOKIE_NAME, refreshTokenValue);
 
-    String baseUrl = "http://localhost:" + port;
-    String refreshUrl = baseUrl + REFRESH_URL;
-
-    // Build the Cookie header that TestRestTemplate will send.
-    // The cookie must be scoped exactly as the server expects: name=value.
-    String cookieHeader = REFRESH_COOKIE_NAME + "=" + refreshTokenValue;
-
-    // Callable that sends POST /auth/refresh with the shared cookie and
-    // returns the HTTP status code as an Integer.
-    java.util.concurrent.Callable<Integer> refreshCall =
-        () -> {
-          HttpHeaders headers = new HttpHeaders();
-          headers.setContentType(MediaType.APPLICATION_JSON);
-          headers.set(HttpHeaders.COOKIE, cookieHeader);
-          HttpEntity<Void> entity = new HttpEntity<>(null, headers);
-          ResponseEntity<String> response =
-              testRestTemplate.postForEntity(refreshUrl, entity, String.class);
-          return response.getStatusCode().value();
-        };
-
-    // Submit both calls concurrently.
+    // MockMvc.perform() is in-process and does not use real socket I/O, so it is
+    // interruptible by Thread.interrupt(). Using TestRestTemplate here would block
+    // in socket.read() — which ignores interrupt — causing the test to hang if the
+    // server-side virtual thread blocks on a DB lock, defeating @Timeout entirely.
     ExecutorService executor = Executors.newFixedThreadPool(2);
     CompletableFuture<Integer> future1 =
         CompletableFuture.supplyAsync(
             () -> {
               try {
-                return refreshCall.call();
+                return mockMvc
+                    .perform(post(REFRESH_URL).cookie(refreshCookie))
+                    .andReturn()
+                    .getResponse()
+                    .getStatus();
               } catch (Exception e) {
                 throw new RuntimeException(e);
               }
@@ -617,7 +595,11 @@ class AuthRefreshLogoutIT {
         CompletableFuture.supplyAsync(
             () -> {
               try {
-                return refreshCall.call();
+                return mockMvc
+                    .perform(post(REFRESH_URL).cookie(refreshCookie))
+                    .andReturn()
+                    .getResponse()
+                    .getStatus();
               } catch (Exception e) {
                 throw new RuntimeException(e);
               }
