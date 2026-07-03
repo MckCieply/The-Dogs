@@ -6,6 +6,7 @@ import com.thedogs.modules.auth.exception.RefreshTokenReusedException;
 import com.thedogs.modules.auth.exception.RefreshTokenRevokedException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -32,16 +33,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@Transactional
 public class RefreshTokenService {
 
   private final RefreshTokenRepository repository;
   private final TokenService tokenService;
 
   /**
-   * Self-reference to the Spring proxy of this bean. Required so that calling {@link
-   * #revokeFamily(UUID)} from within {@link #rotateToken} goes through the proxy and honours the
-   * {@code REQUIRES_NEW} transaction propagation.
+   * Self-reference to the Spring proxy of this bean. Required so that {@link #rotateToken} —
+   * deliberately non-transactional — can invoke {@link #rotateInTransaction} through the proxy,
+   * making its {@code @Transactional} annotation take effect.
    *
    * <p>Injected lazily to avoid a circular-dependency bootstrap problem. The setter is
    * package-private so tests can wire a mock or spy if needed without reflection.
@@ -61,6 +61,7 @@ public class RefreshTokenService {
    * @param tokenHash hex SHA-256 of the raw token value
    * @return the persisted RefreshToken entity
    */
+  @Transactional
   public RefreshToken issue(
       UUID userId,
       Instant expiresAt,
@@ -90,15 +91,18 @@ public class RefreshTokenService {
    * family, and returns the new entity.
    *
    * <p>Theft detection: if the old token was already used, every active token in the family is
-   * revoked and {@link RefreshTokenReusedException} is thrown. Revocation is committed in a
-   * separate transaction ({@code REQUIRES_NEW}) via {@link #revokeFamily}, called through the
-   * Spring proxy (via {@link #self}) so the propagation is respected. The two-phase read strategy
-   * (non-locking check first, locking read second) prevents a deadlock between the outer
-   * transaction's SELECT FOR UPDATE and the inner transaction's UPDATE during revocation.
+   * revoked and {@link RefreshTokenReusedException} is thrown. The revocation is committed by
+   * {@link #rotateInTransaction} <em>before</em> this method throws — which is why this method is
+   * deliberately NOT transactional: throwing from inside the transaction would roll the revocation
+   * back.
    *
-   * <p>Concurrency safety for valid rotation: the {@code SELECT FOR UPDATE} is acquired only after
-   * confirming the token appears active (non-locking check passes). The lock ensures that two
-   * concurrent threads rotating the same fresh token see one succeed and one detect reuse.
+   * <p>History: an earlier design revoked in a {@code REQUIRES_NEW} inner transaction instead.
+   * That self-deadlocks in the concurrent race path — the outer transaction's failed conditional
+   * UPDATE ({@link RefreshTokenRepository#markUsedIfActive}) still holds a row lock on the old
+   * token (PostgreSQL retains the tuple lock even when the re-checked WHERE clause no longer
+   * matches), so the inner transaction's UPDATE of that same row blocks until lock timeout — or
+   * forever with the PostgreSQL default of no timeout, observed as ci-backend hanging until the
+   * 45-minute job limit.
    *
    * @param oldTokenValue raw (unhashed) value from the cookie
    * @param newTokenValue raw (unhashed) value for the replacement token
@@ -109,13 +113,34 @@ public class RefreshTokenService {
    * @throws RefreshTokenExpiredException if the token's expiry time has passed
    */
   public RefreshToken rotateToken(String oldTokenValue, String newTokenValue) {
+    RefreshTokenService proxy = (self != null) ? self : this;
+    return proxy
+        .rotateInTransaction(oldTokenValue, newTokenValue)
+        .orElseThrow(RefreshTokenReusedException::new);
+  }
+
+  /**
+   * Transactional core of rotation. Returns the new token, or {@link Optional#empty()} when token
+   * reuse was detected — in that case the entire family has been revoked <em>in this
+   * transaction</em>, so the revocation commits before {@link #rotateToken} translates the empty
+   * result into a {@link RefreshTokenReusedException}.
+   *
+   * <p>{@code REQUIRES_NEW} so the commit is independent of any caller-managed transaction: the
+   * theft-detection contract is "revocation is durable even though the caller then sees an
+   * exception", which joining a caller's transaction would silently break (the caller's rollback
+   * would undo the revocation). The race-path lock on the old token's row is taken by THIS
+   * transaction, and revokeFamily joins it — a transaction never blocks on its own locks.
+   *
+   * <p>Public only so the Spring proxy can apply {@code @Transactional}; call {@link #rotateToken}
+   * instead.
+   */
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public Optional<RefreshToken> rotateInTransaction(String oldTokenValue, String newTokenValue) {
     String oldHash = sha256Hex(oldTokenValue);
     String newHash = sha256Hex(newTokenValue);
     Instant now = Instant.now();
 
     // Phase 1: Read to detect obviously invalid tokens (unknown, already-used, revoked, expired).
-    // This avoids acquiring any row lock — we do not hold a SELECT FOR UPDATE here, which would
-    // cause a deadlock when the REQUIRES_NEW revokeFamily call tries to UPDATE the same locked row.
     RefreshToken earlyCheck =
         repository.findByTokenHash(oldHash).orElseThrow(InvalidRefreshTokenException::new);
 
@@ -125,9 +150,8 @@ public class RefreshTokenService {
           "event=refresh_token_reuse_detected familyId={} userId={}",
           earlyCheck.getFamilyId(),
           earlyCheck.getUserId());
-      RefreshTokenService proxy = (self != null) ? self : this;
-      proxy.revokeFamily(earlyCheck.getFamilyId());
-      throw new RefreshTokenReusedException();
+      revokeFamily(earlyCheck.getFamilyId());
+      return Optional.empty();
     }
     if (earlyCheck.getRevokedAt() != null) {
       throw new RefreshTokenRevokedException();
@@ -139,50 +163,47 @@ public class RefreshTokenService {
     // Phase 2: Atomic conditional UPDATE — "mark as used only if still active".
     // Returns 1 if this caller won the race, 0 if another request already rotated or revoked it.
     // Because the UPDATE is atomic at the DB level, no SELECT FOR UPDATE lock is needed.
-    // No lock is held when revokeFamily (REQUIRES_NEW) executes, eliminating the deadlock risk.
     int updated = repository.markUsedIfActive(oldHash, now);
 
     if (updated == 0) {
       // Another concurrent request just rotated (or revoked) this token between Phase 1 and here.
-      // Re-read the current state to determine the right error code.
+      // Re-read the current state to determine the right error code. Revoking in THIS transaction
+      // is safe even though our failed conditional UPDATE holds a lock on the old token's row —
+      // a transaction never blocks on its own locks.
       RefreshToken current =
           repository.findByTokenHash(oldHash).orElseThrow(InvalidRefreshTokenException::new);
       log.warn(
           "event=refresh_token_reuse_detected familyId={} userId={}",
           current.getFamilyId(),
           current.getUserId());
-      RefreshTokenService proxy = (self != null) ? self : this;
-      proxy.revokeFamily(current.getFamilyId());
-      throw new RefreshTokenReusedException();
+      revokeFamily(current.getFamilyId());
+      return Optional.empty();
     }
 
     // Issue new token in the same family, linked to the old one as parent
     Instant newExpiry = now.plusSeconds(tokenService.getRefreshTokenTtlSeconds());
-    return issue(
-        earlyCheck.getUserId(),
-        newExpiry,
-        earlyCheck.getFamilyId(),
-        earlyCheck.getId(),
-        earlyCheck.getUserAgent(),
-        earlyCheck.getIpBucket(),
-        newHash);
+    return Optional.of(
+        issue(
+            earlyCheck.getUserId(),
+            newExpiry,
+            earlyCheck.getFamilyId(),
+            earlyCheck.getId(),
+            earlyCheck.getUserAgent(),
+            earlyCheck.getIpBucket(),
+            newHash));
   }
 
   /**
    * Revokes all active tokens belonging to the given family. Idempotent — already-revoked tokens
    * are ignored.
    *
-   * <p>Annotated with {@code REQUIRES_NEW} so that when called from the theft-detection path in
-   * {@link #rotateToken} (Phase 1 — no lock held), the revocation commits independently of the
-   * outer transaction. This ensures family revocation persists even when the caller's transaction
-   * subsequently rolls back due to the thrown {@link RefreshTokenReusedException}.
-   *
-   * <p>Must always be called through the Spring proxy for the {@code REQUIRES_NEW} propagation to
-   * take effect (either from an external bean, or via {@link #self} from within this class).
+   * <p>Joins the caller's transaction. In the theft-detection path the revocation is persisted
+   * because {@link #rotateInTransaction} returns normally (committing) and the 401 exception is
+   * thrown only afterwards, outside the transaction, by {@link #rotateToken}.
    *
    * @param familyId the family to revoke
    */
-  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  @Transactional
   public void revokeFamily(UUID familyId) {
     List<RefreshToken> active = repository.findActiveByFamilyId(familyId);
     Instant now = Instant.now();
@@ -201,6 +222,7 @@ public class RefreshTokenService {
    *
    * @param rawTokenValue the raw (unhashed) refresh token from the cookie
    */
+  @Transactional
   public void logout(String rawTokenValue) {
     String hash = sha256Hex(rawTokenValue);
     repository

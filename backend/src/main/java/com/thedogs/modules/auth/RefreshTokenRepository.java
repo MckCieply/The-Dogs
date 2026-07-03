@@ -45,9 +45,9 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
    * existed but {@code usedAt} was already set, or it was revoked/expired).
    *
    * <p>Using a conditional UPDATE is the simplest race-free way to implement "exactly-one rotation
-   * wins": no SELECT FOR UPDATE lock is held across the revokeFamily call, which eliminates the
-   * deadlock that would otherwise occur when the REQUIRES_NEW inner transaction tries to UPDATE the
-   * same locked row.
+   * wins". Note that even when the UPDATE matches zero rows because the re-checked WHERE clause
+   * fails, PostgreSQL retains the tuple lock acquired during the recheck — so any follow-up
+   * revocation must happen in the SAME transaction (see RefreshTokenService#rotateInTransaction).
    */
   @Modifying(clearAutomatically = true)
   @Query(

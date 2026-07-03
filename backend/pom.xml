@@ -261,6 +261,13 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
         <configuration>
+          <!--
+            Hard kill a hung forked JVM after 20 min (full IT suite normally takes ~2 min).
+            Without this, a single blocked thread hangs the build until the CI job's
+            45-minute timeout with zero diagnostics; with it, failsafe fails the build
+            and dumps thread state into failsafe-reports (uploaded as CI artifacts).
+          -->
+          <forkedProcessTimeoutInSeconds>1200</forkedProcessTimeoutInSeconds>
           <environmentVariables>
             <!--
               On Windows with Docker Desktop 4.73+ the named-pipe API gateway rejects docker-java

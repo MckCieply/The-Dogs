@@ -129,12 +129,15 @@ public class AuthService {
         refreshTokenValue);
   }
 
-  @Transactional
+  // Deliberately NOT @Transactional: rotateToken commits rotation/revocation in its own
+  // transaction and throws RefreshTokenReusedException only after that commit. Wrapping this
+  // method in a transaction adds no atomicity (the reads below are independent) and an outer
+  // rollback must never be able to undo a theft-detection revocation.
   public RefreshResult refresh(String oldRefreshToken) {
     // Generate new token value before rotation so the new hash can be stored atomically
     String newRefreshToken = tokenService.generateRefreshToken();
 
-    // rotateToken handles: SELECT FOR UPDATE, theft detection, family revocation, and issuance
+    // rotateToken handles: atomic rotation, theft detection, family revocation, and issuance
     RefreshToken newToken = refreshTokenService.rotateToken(oldRefreshToken, newRefreshToken);
 
     // Look up user for access token generation

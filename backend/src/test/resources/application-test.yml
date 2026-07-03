@@ -6,11 +6,18 @@ spring:
     #   SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/thedogs_test
     #   SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
     # The thedogs_test database must exist and be accessible with the same credentials.
-    url: jdbc:tc:postgresql:17:///thedogs_test
+    # socketTimeout (seconds): pgjdbc defaults to 0 = infinite. If the container or a
+    # connection dies mid-test, a blocked socket read would otherwise hang the JVM
+    # silently until the CI job timeout (observed as a 45-min cancelled ci-backend run).
+    url: jdbc:tc:postgresql:17:///thedogs_test?socketTimeout=60&connectTimeout=10
     driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
     hikari:
       maximum-pool-size: 5
       minimum-idle: 1
+      # Fail fast instead of waiting forever on row locks or runaway statements.
+      # Postgres defaults both to 0 = wait indefinitely, which turns any test-side
+      # lock leak into a silent suite hang.
+      connection-init-sql: "SET lock_timeout = '10s'; SET statement_timeout = '30s'"
   jpa:
     hibernate:
       ddl-auto: validate

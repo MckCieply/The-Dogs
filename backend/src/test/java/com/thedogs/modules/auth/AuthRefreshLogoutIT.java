@@ -576,40 +576,55 @@ class AuthRefreshLogoutIT {
     // interruptible by Thread.interrupt(). Using TestRestTemplate here would block
     // in socket.read() — which ignores interrupt — causing the test to hang if the
     // server-side virtual thread blocks on a DB lock, defeating @Timeout entirely.
-    ExecutorService executor = Executors.newFixedThreadPool(2);
-    CompletableFuture<Integer> future1 =
-        CompletableFuture.supplyAsync(
-            () -> {
-              try {
-                return mockMvc
-                    .perform(post(REFRESH_URL).cookie(refreshCookie))
-                    .andReturn()
-                    .getResponse()
-                    .getStatus();
-              } catch (Exception e) {
-                throw new RuntimeException(e);
-              }
-            },
-            executor);
-    CompletableFuture<Integer> future2 =
-        CompletableFuture.supplyAsync(
-            () -> {
-              try {
-                return mockMvc
-                    .perform(post(REFRESH_URL).cookie(refreshCookie))
-                    .andReturn()
-                    .getResponse()
-                    .getStatus();
-              } catch (Exception e) {
-                throw new RuntimeException(e);
-              }
-            },
-            executor);
-
+    //
+    // Daemon threads + finally-shutdownNow: if a request thread does get stuck anyway
+    // (e.g. an uninterruptible JDBC read on a dead connection), a non-daemon pool
+    // thread would keep the forked JVM alive after the suite finishes, hanging the
+    // whole build until the CI job timeout.
+    ExecutorService executor =
+        Executors.newFixedThreadPool(
+            2,
+            r -> {
+              Thread t = new Thread(r);
+              t.setDaemon(true);
+              return t;
+            });
     List<Integer> statuses = new ArrayList<>();
-    statuses.add(future1.get(25, TimeUnit.SECONDS));
-    statuses.add(future2.get(25, TimeUnit.SECONDS));
-    executor.shutdown();
+    try {
+      CompletableFuture<Integer> future1 =
+          CompletableFuture.supplyAsync(
+              () -> {
+                try {
+                  return mockMvc
+                      .perform(post(REFRESH_URL).cookie(refreshCookie))
+                      .andReturn()
+                      .getResponse()
+                      .getStatus();
+                } catch (Exception e) {
+                  throw new RuntimeException(e);
+                }
+              },
+              executor);
+      CompletableFuture<Integer> future2 =
+          CompletableFuture.supplyAsync(
+              () -> {
+                try {
+                  return mockMvc
+                      .perform(post(REFRESH_URL).cookie(refreshCookie))
+                      .andReturn()
+                      .getResponse()
+                      .getStatus();
+                } catch (Exception e) {
+                  throw new RuntimeException(e);
+                }
+              },
+              executor);
+
+      statuses.add(future1.get(25, TimeUnit.SECONDS));
+      statuses.add(future2.get(25, TimeUnit.SECONDS));
+    } finally {
+      executor.shutdownNow();
+    }
 
     long successCount = statuses.stream().filter(s -> s == HttpStatus.OK.value()).count();
     long unauthorizedCount =
