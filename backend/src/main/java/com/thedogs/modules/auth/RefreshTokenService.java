@@ -96,13 +96,12 @@ public class RefreshTokenService {
    * deliberately NOT transactional: throwing from inside the transaction would roll the revocation
    * back.
    *
-   * <p>History: an earlier design revoked in a {@code REQUIRES_NEW} inner transaction instead.
-   * That self-deadlocks in the concurrent race path — the outer transaction's failed conditional
-   * UPDATE ({@link RefreshTokenRepository#markUsedIfActive}) still holds a row lock on the old
-   * token (PostgreSQL retains the tuple lock even when the re-checked WHERE clause no longer
-   * matches), so the inner transaction's UPDATE of that same row blocks until lock timeout — or
-   * forever with the PostgreSQL default of no timeout, observed as ci-backend hanging until the
-   * 45-minute job limit.
+   * <p>History: an earlier design revoked in a {@code REQUIRES_NEW} inner transaction instead. That
+   * self-deadlocks in the concurrent race path — the outer transaction's failed conditional UPDATE
+   * ({@link RefreshTokenRepository#markUsedIfActive}) still holds a row lock on the old token
+   * (PostgreSQL retains the tuple lock even when the re-checked WHERE clause no longer matches), so
+   * the inner transaction's UPDATE of that same row blocks until lock timeout — or forever with the
+   * PostgreSQL default of no timeout, observed as ci-backend hanging until the 45-minute job limit.
    *
    * @param oldTokenValue raw (unhashed) value from the cookie
    * @param newTokenValue raw (unhashed) value for the replacement token
