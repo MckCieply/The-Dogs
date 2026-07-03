@@ -163,13 +163,13 @@ Refined per feature spec under `docs/specs/`. RBAC: `ROLE_TRAINER` sees only own
 - Pagination: cursor-based (`?cursor=…&limit=…`) for lists.
 - Error format: RFC 7807 `application/problem+json`.
 
-### Auth endpoints (implemented — AUTH-01)
+### Auth endpoints (implemented — AUTH-01 / AUTH-02 / AUTH-03)
 
 | Method | Path | Auth required | Description |
 | ------ | ---- | ------------- | ----------- |
-| `POST` | `/api/v1/auth/login` | No | Accepts `{"email","password"}`. Returns `{"accessToken","expiresIn"}` plus sets `refreshToken` HttpOnly cookie. |
-| `POST` | `/api/v1/auth/refresh` | No (cookie) | Reads `refreshToken` cookie, rotates it, returns new `{"accessToken","expiresIn"}`. |
-| `GET`  | `/api/v1/auth/some-public-stub` | No | Health/smoke stub — returns `{"status":"ok"}`. Will be removed or replaced by a proper public endpoint. |
+| `POST` | `/api/v1/auth/login` | No | Accepts `{"email","password"}`. Returns `{"accessToken","expiresIn"}` plus sets `refresh_token` HttpOnly cookie. |
+| `POST` | `/api/v1/auth/refresh` | No (cookie) | Reads `refresh_token` cookie, rotates it, returns new `{"accessToken","expiresIn"}` + new cookie. |
+| `POST` | `/api/v1/auth/logout` | No (cookie) | Revokes token family, clears cookie (`Max-Age=0`). Always returns `204` (idempotent). |
 
 ### Error response format (implemented — AUTH-01)
 
@@ -233,11 +233,11 @@ The frontend ships as an installable PWA from day one.
 
 ### Implemented (AUTH-01)
 
-- **Default deny:** `SecurityConfig` requires authentication on all requests; explicit `permitAll()` applied only to `/api/v1/auth/login`, `/api/v1/auth/refresh`, `/api/v1/auth/some-public-stub`, Swagger UI paths, and `/actuator/health` + `/actuator/info`.
+- **Default deny:** `SecurityConfig` requires authentication on all requests; explicit `permitAll()` applied only to `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout`, Swagger UI paths, and `/actuator/health` + `/actuator/info`.
 - **Session policy:** `STATELESS` — no server-side session.
 - **JWT algorithm:** HS256 (JJWT 0.12.6). Secret key sourced from `${jwt.secret}` env var and loaded via `Keys.hmacShaKeyFor(secret.getBytes(UTF_8))`. `JwtDecoder` in `SecurityConfig` is built with the same key and pinned to HS256 via `NimbusJwtDecoder.withSecretKey(...).macAlgorithm(HS256)`.
 - **Token lifetimes:** access 15 min (`${jwt.access-token-ttl-minutes}`), refresh 7 days (`${jwt.refresh-token-ttl-days}`), configurable via env.
-- **Refresh token storage:** opaque `UUID.randomUUID()` stored in `RefreshTokenStore` (in-memory map). Set as `HttpOnly`, `Secure`, `SameSite=Strict` cookie scoped to `/api/v1/auth/refresh`.
+- **Refresh token storage:** opaque 256-bit `SecureRandom` value; DB stores SHA-256 hex hash in `refresh_token` table (AUTH-03). Cookie attributes: `HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth; Max-Age=604800`. Rotation on every refresh; family-level revocation on logout or reuse detection.
 - **Password hashing:** BCrypt cost 12 (`BCryptPasswordEncoder(12)`).
 - **RBAC:** `ROLE_TRAINER`, `ROLE_ADMIN`. Roles loaded from JWT `roles` claim via `JwtGrantedAuthoritiesConverter` (no prefix stripping — stored as `ROLE_*`). Method-level `@PreAuthorize` intended on services per [ADR-0003](adr/0003-auth-jwt-rbac.md).
 - **HTTP headers:** HSTS (`includeSubDomains`, `maxAge=31536000`), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` configured in `SecurityConfig`.

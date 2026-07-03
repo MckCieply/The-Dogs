@@ -78,6 +78,9 @@ export const AuthStore = signalStore(
       patchState(store, { loading: true });
       try {
         await authService.logout();
+      } catch {
+        // Logout is best-effort: even if the backend is unreachable we clear local auth state.
+        // The server-side refresh-token will expire naturally.
       } finally {
         patchState(store, {
           accessToken: null,

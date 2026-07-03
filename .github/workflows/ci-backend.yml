@@ -24,14 +24,7 @@ jobs:
   build-and-test:
     name: Maven verify
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    services:
-      # Testcontainers boots its own Postgres; this service is just here as
-      # a fallback for tests that bypass Testcontainers.
-      docker:
-        image: docker:dind
-        options: --privileged
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -57,6 +50,26 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
+
+      # Cache the Testcontainers PostgreSQL image so CI doesn't re-pull ~350 MB on every run.
+      # ubuntu-latest runners have Docker installed natively; no docker:dind service needed.
+      - name: Restore Testcontainers Docker image cache
+        id: docker-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/docker-images
+          key: docker-postgres-17-${{ runner.os }}
+
+      - name: Load cached PostgreSQL image
+        if: steps.docker-cache.outputs.cache-hit == 'true'
+        run: docker load -i /tmp/docker-images/postgres-17.tar
+
+      - name: Pull and cache PostgreSQL image
+        if: steps.docker-cache.outputs.cache-hit != 'true'
+        run: |
+          docker pull postgres:17
+          mkdir -p /tmp/docker-images
+          docker save postgres:17 -o /tmp/docker-images/postgres-17.tar
 
       - name: Run Maven verify (compile + tests + Testcontainers integration)
         working-directory: backend

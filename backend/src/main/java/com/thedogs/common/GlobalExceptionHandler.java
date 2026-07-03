@@ -2,6 +2,10 @@ package com.thedogs.common;
 
 import com.thedogs.modules.auth.AccountDisabledException;
 import com.thedogs.modules.auth.TooManyLoginAttemptsException;
+import com.thedogs.modules.auth.exception.InvalidRefreshTokenException;
+import com.thedogs.modules.auth.exception.RefreshTokenExpiredException;
+import com.thedogs.modules.auth.exception.RefreshTokenReusedException;
+import com.thedogs.modules.auth.exception.RefreshTokenRevokedException;
 import jakarta.persistence.EntityNotFoundException;
 import java.net.URI;
 import java.util.List;
@@ -9,6 +13,7 @@ import java.util.Map;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -106,6 +111,58 @@ public class GlobalExceptionHandler {
     HttpHeaders headers = new HttpHeaders();
     headers.set(HttpHeaders.RETRY_AFTER, String.valueOf(ex.getRetryAfterSeconds()));
     return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).headers(headers).body(problem);
+  }
+
+  @ExceptionHandler(RefreshTokenReusedException.class)
+  public ResponseEntity<ProblemDetail> handleRefreshTokenReused(RefreshTokenReusedException ex) {
+    ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
+    problem.setType(URI.create(BASE_TYPE + "unauthorized"));
+    problem.setTitle("Unauthorized");
+    problem.setDetail("Refresh token has already been used");
+    problem.setProperty("errors", List.of(Map.of("code", "refresh_reused")));
+    // AC-3: on theft detection all tokens in the family are revoked; clear the cookie so the
+    // browser does not keep sending a credential that will only produce further 401 responses.
+    ResponseCookie cleared =
+        ResponseCookie.from("refresh_token", "")
+            .maxAge(0)
+            .httpOnly(true)
+            .secure(true)
+            .sameSite("Strict")
+            .path("/api/v1/auth")
+            .build();
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        .header(HttpHeaders.SET_COOKIE, cleared.toString())
+        .body(problem);
+  }
+
+  @ExceptionHandler(RefreshTokenRevokedException.class)
+  public ProblemDetail handleRefreshTokenRevoked(RefreshTokenRevokedException ex) {
+    ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
+    problem.setType(URI.create(BASE_TYPE + "unauthorized"));
+    problem.setTitle("Unauthorized");
+    problem.setDetail("Refresh token has been revoked");
+    problem.setProperty("errors", List.of(Map.of("code", "refresh_revoked")));
+    return problem;
+  }
+
+  @ExceptionHandler(RefreshTokenExpiredException.class)
+  public ProblemDetail handleRefreshTokenExpired(RefreshTokenExpiredException ex) {
+    ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
+    problem.setType(URI.create(BASE_TYPE + "unauthorized"));
+    problem.setTitle("Unauthorized");
+    problem.setDetail("Refresh token has expired");
+    problem.setProperty("errors", List.of(Map.of("code", "refresh_expired")));
+    return problem;
+  }
+
+  @ExceptionHandler(InvalidRefreshTokenException.class)
+  public ProblemDetail handleInvalidRefreshToken(InvalidRefreshTokenException ex) {
+    ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
+    problem.setType(URI.create(BASE_TYPE + "unauthorized"));
+    problem.setTitle("Unauthorized");
+    problem.setDetail("Invalid refresh token");
+    problem.setProperty("errors", List.of(Map.of("code", "invalid_refresh")));
+    return problem;
   }
 
   @ExceptionHandler(AccessDeniedException.class)

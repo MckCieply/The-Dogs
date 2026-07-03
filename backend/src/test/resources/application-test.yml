@@ -6,8 +6,18 @@ spring:
     #   SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/thedogs_test
     #   SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
     # The thedogs_test database must exist and be accessible with the same credentials.
-    url: jdbc:tc:postgresql:17:///thedogs_test
+    # socketTimeout (seconds): pgjdbc defaults to 0 = infinite. If the container or a
+    # connection dies mid-test, a blocked socket read would otherwise hang the JVM
+    # silently until the CI job timeout (observed as a 45-min cancelled ci-backend run).
+    url: jdbc:tc:postgresql:17:///thedogs_test?socketTimeout=60&connectTimeout=10
     driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      # Fail fast instead of waiting forever on row locks or runaway statements.
+      # Postgres defaults both to 0 = wait indefinitely, which turns any test-side
+      # lock leak into a silent suite hang.
+      connection-init-sql: "SET lock_timeout = '10s'; SET statement_timeout = '30s'"
   jpa:
     hibernate:
       ddl-auto: validate
@@ -23,3 +33,24 @@ jwt:
 logging:
   level:
     com.thedogs: INFO
+    # --- Security-log suppression for AC-10 tests -----------------------------------
+    # AC-10 integration tests attach a ListAppender to the root logger and set its level
+    # to Level.ALL to capture all output. Without explicit levels below, internal framework
+    # loggers at TRACE/DEBUG would leak sensitive values (token hash, password).
+    # Pinning these loggers here means their level is not overridden by rootLogger.setLevel(ALL).
+    #
+    # Hibernate SQL/JDBC parameter-binding trace — logs "binding parameter (N:VARCHAR) <- [hash]"
+    org.hibernate.orm.jdbc.bind: WARN
+    org.hibernate.orm.jdbc.extract: WARN
+    org.hibernate.SQL: WARN
+    # Hibernate type extraction trace — logs "extracted value (N:VARCHAR) -> [hash]"
+    org.hibernate.type: WARN
+    # PostgreSQL JDBC wire-protocol trace — logs "FE=> Bind(...,$1=<('hash')>...)"
+    org.postgresql: WARN
+    # Spring HTTP message converter — logs "Read [type] to [LoginRequest[...,password=...]]"
+    org.springframework.http.converter: WARN
+    org.springframework.web.servlet.mvc.method.annotation: WARN
+    # Broad suppression of other framework internals that may trace SQL or request data
+    org.springframework.jdbc: WARN
+    org.springframework.orm: WARN
+    org.hibernate: WARN
