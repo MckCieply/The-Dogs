@@ -10,7 +10,7 @@
 CREATE TABLE password_reset_token (
     id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id             UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    token_hash          CHAR(64) NOT NULL UNIQUE,
+    token_hash          VARCHAR(64) NOT NULL UNIQUE,
     issued_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
     expires_at          TIMESTAMPTZ NOT NULL,
     used_at             TIMESTAMPTZ,

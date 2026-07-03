@@ -25,12 +25,12 @@ import org.springframework.transaction.annotation.Transactional;
  * out-of-band by an admin, and consumed by reset-password. Token values are stored only as SHA-256
  * hashes.
  *
- * <p>Spec drift note: ADR-0013's data model stored the raw token so the admin endpoint could
- * return it, while the AUTH-05 spec mandates hashing at rest. This implementation keeps hashing at
- * rest and resolves the conflict by having the admin retrieval endpoint ROTATE the active token —
- * it revokes the outstanding token, mints a fresh one, and returns the fresh value. Every admin
- * fetch therefore invalidates prior values, which is a strictly stronger posture than replaying a
- * stored plaintext.
+ * <p>Spec drift note: ADR-0013's data model stored the raw token so the admin endpoint could return
+ * it, while the AUTH-05 spec mandates hashing at rest. This implementation keeps hashing at rest
+ * and resolves the conflict by having the admin retrieval endpoint ROTATE the active token — it
+ * revokes the outstanding token, mints a fresh one, and returns the fresh value. Every admin fetch
+ * therefore invalidates prior values, which is a strictly stronger posture than replaying a stored
+ * plaintext.
  */
 @Service
 @Slf4j
@@ -133,8 +133,8 @@ public class PasswordResetService {
 
   /**
    * Consumes a reset token: verifies it, enforces the AUTH-04 strength policy on the new password,
-   * updates the user's bcrypt hash, and force-logs-out every session by revoking all refresh
-   * tokens (AC-5..AC-10).
+   * updates the user's bcrypt hash, and force-logs-out every session by revoking all refresh tokens
+   * (AC-5..AC-10).
    */
   @Transactional
   public void resetPassword(String rawToken, String newPassword, String rawIp) {
@@ -192,8 +192,7 @@ public class PasswordResetService {
     log.info("event=password_reset_token_admin_retrieval userId={}", user.getId());
     // Rotate: invalidate what exists, mint fresh, return the fresh value (see class javadoc).
     String rawToken = issueToken(user, null);
-    PasswordResetToken fresh =
-        tokenRepository.findByTokenHash(sha256Hex(rawToken)).orElseThrow();
+    PasswordResetToken fresh = tokenRepository.findByTokenHash(sha256Hex(rawToken)).orElseThrow();
     return new AdminResetTokenResponse(rawToken, fresh.getExpiresAt());
   }
 

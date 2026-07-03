@@ -18,8 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Admin retrieval of password-reset tokens (AUTH-05, ADR-0013). The ONLY non-dev-log path where a
- * reset token value leaves the backend. Locked to ROLE_ADMIN here (braces) and again at the
- * service layer (belt).
+ * reset token value leaves the backend. Locked to ROLE_ADMIN here (braces) and again at the service
+ * layer (belt).
  */
 @Tag(name = "Admin — password reset", description = "Out-of-band reset-token retrieval (no SMTP)")
 @RestController

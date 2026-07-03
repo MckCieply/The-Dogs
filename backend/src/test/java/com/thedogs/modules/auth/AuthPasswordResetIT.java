@@ -173,8 +173,7 @@ class AuthPasswordResetIT {
     Instant before = Instant.now();
     requestForgotPassword(TEST_EMAIL);
 
-    List<PasswordResetToken> active =
-        resetTokenRepository.findActiveByUserId(testUser.getId());
+    List<PasswordResetToken> active = resetTokenRepository.findActiveByUserId(testUser.getId());
     assertThat(active).hasSize(1);
     PasswordResetToken token = active.get(0);
     assertThat(token.getUsedAt()).isNull();

@@ -14,8 +14,7 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
   Optional<PasswordResetToken> findByTokenHash(String tokenHash);
 
   /** All not-yet-used tokens for a user — superseded on each new forgot-password request. */
-  @Query(
-      "SELECT t FROM PasswordResetToken t WHERE t.userId = :userId AND t.usedAt IS NULL")
+  @Query("SELECT t FROM PasswordResetToken t WHERE t.userId = :userId AND t.usedAt IS NULL")
   List<PasswordResetToken> findActiveByUserId(@Param("userId") UUID userId);
 
   /**

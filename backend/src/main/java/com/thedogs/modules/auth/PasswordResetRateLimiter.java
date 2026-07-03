@@ -39,11 +39,12 @@ public class PasswordResetRateLimiter {
   }
 
   /**
-   * Consumes one forgot-password token for the given email hash, throwing when the hourly budget
-   * is exhausted (AC-11).
+   * Consumes one forgot-password token for the given email hash, throwing when the hourly budget is
+   * exhausted (AC-11).
    */
   public void recordForgotAttempt(String emailHash) {
-    Bucket bucket = forgotBuckets.computeIfAbsent(emailHash, k -> buildBucket(MAX_FORGOT_PER_EMAIL));
+    Bucket bucket =
+        forgotBuckets.computeIfAbsent(emailHash, k -> buildBucket(MAX_FORGOT_PER_EMAIL));
     if (!bucket.tryConsume(1)) {
       throw new TooManyLoginAttemptsException(retryAfterSeconds(bucket));
     }
