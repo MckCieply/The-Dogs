@@ -58,4 +58,22 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
           + "   AND r.revokedAt IS NULL"
           + "   AND r.expiresAt > :now")
   int markUsedIfActive(@Param("hash") String hash, @Param("now") Instant now);
+
+  /**
+   * Revokes every active refresh token for a user in one statement (AUTH-05: successful password
+   * reset forcibly logs out all sessions).
+   *
+   * <p>{@code flushAutomatically} matters here: the caller has a pending (unflushed) password-hash
+   * update in the persistence context, and {@code clearAutomatically} alone would clear it away
+   * unflushed — silently discarding the new password.
+   *
+   * @return the number of tokens revoked
+   */
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
+  @Query(
+      "UPDATE RefreshToken r"
+          + "   SET r.revokedAt = :now"
+          + " WHERE r.userId = :userId"
+          + "   AND r.revokedAt IS NULL")
+  int revokeAllForUser(@Param("userId") UUID userId, @Param("now") Instant now);
 }

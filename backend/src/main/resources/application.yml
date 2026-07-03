@@ -26,6 +26,13 @@ jwt:
   access-token-ttl-minutes: 15
   refresh-token-ttl-days: 7
 
+app:
+  password-reset:
+    # Dev-mode helper (ADR-0013): when true, the raw reset token is logged at INFO on creation.
+    # MUST stay false outside dev/test — a leaked prod log would compromise every outstanding
+    # token. The test profile overrides this to true (AC-12 asserts both directions).
+    log-token-on-create: false
+
 springdoc:
   api-docs:
     path: /v3/api-docs
