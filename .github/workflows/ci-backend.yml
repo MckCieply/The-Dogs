@@ -127,11 +127,28 @@ jobs:
           java-version: '25'
           cache: maven
 
+      # Without an NVD_API_KEY secret the NVD download always exceeds the job timeout,
+      # burning 20 runner-minutes per PR for a guaranteed failure. Skip with a warning
+      # instead; the nightly dependency-scan workflow carries the same guard.
+      - name: Check NVD API key
+        id: nvd
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          if [[ -n "$NVD_API_KEY" ]]; then
+            echo "has_key=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_key=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::NVD_API_KEY secret is not configured — skipping OWASP dependency-check. Get a free key at https://nvd.nist.gov/developers/request-an-api-key and add it as a repository secret."
+          fi
+
       - name: Get week number for OWASP cache key
+        if: steps.nvd.outputs.has_key == 'true'
         id: date
         run: echo "week=$(date +%Y-%U)" >> $GITHUB_OUTPUT
 
       - name: Cache OWASP NVD database
+        if: steps.nvd.outputs.has_key == 'true'
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
@@ -140,15 +157,15 @@ jobs:
             owasp-nvd-${{ runner.os }}-
 
       - name: Run OWASP dependency-check
+        if: steps.nvd.outputs.has_key == 'true'
         working-directory: backend
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           ./mvnw -B org.owasp:dependency-check-maven:check \
-            -DnvdApiKey="${NVD_API_KEY:-}" \
+            -DnvdApiKey="${NVD_API_KEY}" \
             -DfailBuildOnCVSS=8 \
             -DskipTestScope=true
-        continue-on-error: ${{ secrets.NVD_API_KEY == '' }}
 
       - name: Upload OWASP report
         if: always()

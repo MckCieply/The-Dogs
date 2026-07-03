@@ -33,13 +33,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 25
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '25'
-          cache: maven
-
       - name: Set up Node.js 22 LTS
         uses: actions/setup-node@v4
         with:
@@ -47,34 +40,45 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Build backend image
-        working-directory: backend
-        run: ./mvnw -B -DskipTests package spring-boot:build-image
-
-      - name: Build frontend bundle
-        working-directory: frontend
-        run: |
-          npm ci
-          npm run build -- --configuration=production
-
+      # docker compose builds both images itself (backend/Dockerfile multi-stage
+      # Maven build, frontend/Dockerfile npm build + nginx). No host-side JDK or
+      # Angular build needed — earlier versions of this workflow built a buildpack
+      # image and a host bundle that compose never used.
       - name: Boot docker compose stack
         run: |
-          cp .env.example .env || true
-          docker compose -f docker-compose.yml up -d
-          # Wait for backend health (max 90s).
+          cp .env.example .env
+          docker compose -f docker-compose.yml up -d --build
+          # Wait for backend health (max 90s) — fail loudly instead of letting
+          # Playwright produce 30 confusing ERR_CONNECTION_REFUSED failures.
+          ok=""
           for i in {1..30}; do
             if curl -fsS http://localhost:8080/actuator/health > /dev/null 2>&1; then
-              echo "Backend healthy"; break
+              echo "Backend healthy"; ok=1; break
             fi
             sleep 3
           done
-          # Wait for frontend (max 90s).
+          if [[ -z "$ok" ]]; then
+            echo "::error::Backend never became healthy on :8080"
+            docker compose logs --tail 100
+            exit 1
+          fi
+          # Wait for frontend nginx (compose maps it to host port 80, not 4200).
+          ok=""
           for i in {1..30}; do
-            if curl -fsS http://localhost:4200 > /dev/null 2>&1; then
-              echo "Frontend healthy"; break
+            if curl -fsS http://localhost:80 > /dev/null 2>&1; then
+              echo "Frontend healthy"; ok=1; break
             fi
             sleep 3
           done
+          if [[ -z "$ok" ]]; then
+            echo "::error::Frontend never became healthy on :80"
+            docker compose logs --tail 100
+            exit 1
+          fi
+
+      - name: Install frontend dependencies (Playwright runner)
+        working-directory: frontend
+        run: npm ci
 
       - name: Install Playwright browsers
         working-directory: frontend
@@ -83,8 +87,14 @@ jobs:
       - name: Run Playwright tests
         working-directory: frontend
         env:
-          PLAYWRIGHT_BASE_URL: http://localhost:4200
+          # playwright.config.ts reads E2E_BASE_URL (NOT PLAYWRIGHT_BASE_URL).
+          # The compose stack serves the frontend on host port 80.
+          E2E_BASE_URL: http://localhost:80
         run: npm exec -- playwright test
+
+      - name: Dump compose logs on failure
+        if: failure()
+        run: docker compose -f docker-compose.yml logs --tail 200
 
       - name: Tear down docker compose
         if: always()

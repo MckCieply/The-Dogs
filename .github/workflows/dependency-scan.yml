@@ -7,8 +7,10 @@ on:
     - cron: '30 4 * * *'
   workflow_dispatch:
 
-# Nightly OWASP + npm audit + license scan. Opens GitHub issues for any
-# finding rated High/Critical. License scan fails the run on GPL/AGPL.
+# Nightly OWASP + npm audit + license scan. Opens ONE GitHub issue per finding
+# category (deduplicated — comments on the existing open issue on repeat
+# failures instead of spamming a new issue every night). License scan fails
+# the run on GPL/AGPL.
 
 permissions:
   contents: read
@@ -18,7 +20,7 @@ jobs:
   backend-scan:
     name: Backend OWASP + license
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -31,29 +33,8 @@ jobs:
           java-version: '25'
           cache: maven
 
-      - name: Get week number for OWASP cache key
-        id: date
-        run: echo "week=$(date +%Y-%U)" >> $GITHUB_OUTPUT
-
-      - name: Cache OWASP NVD database
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: owasp-nvd-${{ runner.os }}-week-${{ steps.date.outputs.week }}
-          restore-keys: |
-            owasp-nvd-${{ runner.os }}-
-
-      - name: OWASP dependency-check
-        working-directory: backend
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: |
-          ./mvnw -B org.owasp:dependency-check-maven:check \
-            -DnvdApiKey="${NVD_API_KEY:-}" \
-            -DfailBuildOnCVSS=8 \
-            -DskipTestScope=true \
-            -Dformats=HTML,JSON
-
+      # License scan first: it is fast and independent of the NVD database, so a
+      # slow/failed OWASP step can never mask a license violation.
       - name: License scan (Maven)
         working-directory: backend
         run: |
@@ -63,6 +44,44 @@ jobs:
             echo "::error::GPL/AGPL dependency detected — see THIRD-PARTY.txt"
             exit 1
           fi
+
+      - name: Check NVD API key
+        id: nvd
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          if [[ -n "$NVD_API_KEY" ]]; then
+            echo "has_key=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_key=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::NVD_API_KEY secret is not configured — skipping OWASP dependency-check. Without the key the NVD download exceeds the job timeout (this is why every nightly run failed). Get a free key at https://nvd.nist.gov/developers/request-an-api-key and add it as a repository secret."
+          fi
+
+      - name: Get week number for OWASP cache key
+        if: steps.nvd.outputs.has_key == 'true'
+        id: date
+        run: echo "week=$(date +%Y-%U)" >> $GITHUB_OUTPUT
+
+      - name: Cache OWASP NVD database
+        if: steps.nvd.outputs.has_key == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: owasp-nvd-${{ runner.os }}-week-${{ steps.date.outputs.week }}
+          restore-keys: |
+            owasp-nvd-${{ runner.os }}-
+
+      - name: OWASP dependency-check
+        if: steps.nvd.outputs.has_key == 'true'
+        working-directory: backend
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          ./mvnw -B org.owasp:dependency-check-maven:check \
+            -DnvdApiKey="${NVD_API_KEY}" \
+            -DfailBuildOnCVSS=8 \
+            -DskipTestScope=true \
+            -Dformats=HTML,JSON
 
       - name: Upload backend reports
         if: always()
@@ -75,20 +94,27 @@ jobs:
             backend/target/generated-sources/license/THIRD-PARTY.txt
           retention-days: 30
 
-      - name: Open issue on backend findings
+      - name: Open or update issue on backend findings
         if: failure()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh issue create \
-            --title "dependency-scan: backend findings $(date -I)" \
-            --label "kind:security,severity:high,status:triage" \
-            --body "Nightly dependency scan failed on backend.
+          TITLE="dependency-scan: backend findings"
+          BODY="Nightly dependency scan failed on backend.
 
           Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
           Likely cause: OWASP CVSS ≥ 8 dependency or GPL/AGPL license drift.
           See workflow logs and uploaded artefacts."
+          EXISTING=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[0].number // empty')
+          if [[ -n "$EXISTING" ]]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            gh issue create \
+              --title "$TITLE" \
+              --label "kind:security,severity:high,status:triage" \
+              --body "$BODY"
+          fi
 
   frontend-scan:
     name: Frontend npm audit + license
@@ -147,17 +173,24 @@ jobs:
           path: frontend/license-report.json
           retention-days: 30
 
-      - name: Open issue on frontend findings
+      - name: Open or update issue on frontend findings
         if: failure()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh issue create \
-            --title "dependency-scan: frontend findings $(date -I)" \
-            --label "kind:security,severity:high,status:triage" \
-            --body "Nightly dependency scan failed on frontend.
+          TITLE="dependency-scan: frontend findings"
+          BODY="Nightly dependency scan failed on frontend.
 
           Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
           Likely cause: npm audit High/Critical advisory or GPL/AGPL license drift.
           See workflow logs and uploaded artefacts."
+          EXISTING=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq '.[0].number // empty')
+          if [[ -n "$EXISTING" ]]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            gh issue create \
+              --title "$TITLE" \
+              --label "kind:security,severity:high,status:triage" \
+              --body "$BODY"
+          fi
