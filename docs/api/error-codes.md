@@ -39,5 +39,6 @@ The `field` key is present only for validation errors.
 | `invalid_refresh` | 401 | The refresh token value does not match any row in the database | AUTH-03 |
 | `email_taken` | 409 | Registration attempted with an email that already has an account (case-insensitive) | AUTH-04 |
 | `password_too_weak` | 400 | Password scored below 3 on the zxcvbn 0–4 scale; the error object carries an optional integer extension field `password_score` with the measured score so clients can render "score N of 4" without re-running zxcvbn | AUTH-04 |
+| `invalid_reset_token` | 400 | Password-reset token is unknown, already used, or expired (deliberately indistinguishable) | AUTH-05 |
 
 Later features must append new codes to this table with their feature slug in the "Registered by" column. The reviewer enforces this.

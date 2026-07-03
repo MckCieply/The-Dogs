@@ -4,6 +4,7 @@ import com.thedogs.modules.auth.AccountDisabledException;
 import com.thedogs.modules.auth.TooManyLoginAttemptsException;
 import com.thedogs.modules.auth.exception.EmailTakenException;
 import com.thedogs.modules.auth.exception.InvalidRefreshTokenException;
+import com.thedogs.modules.auth.exception.InvalidResetTokenException;
 import com.thedogs.modules.auth.exception.PasswordTooWeakException;
 import com.thedogs.modules.auth.exception.RefreshTokenExpiredException;
 import com.thedogs.modules.auth.exception.RefreshTokenReusedException;
@@ -108,6 +109,17 @@ public class GlobalExceptionHandler {
                 "code", "password_too_weak",
                 "field", "password",
                 "password_score", ex.getScore())));
+    return problem;
+  }
+
+  @ExceptionHandler(InvalidResetTokenException.class)
+  public ProblemDetail handleInvalidResetToken(InvalidResetTokenException ex) {
+    ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+    problem.setType(URI.create(BASE_TYPE + "validation"));
+    problem.setTitle("Validation Failed");
+    // One detail for unknown, used, AND expired tokens — clients must not distinguish (AC-8/9).
+    problem.setDetail("The reset token is invalid.");
+    problem.setProperty("errors", List.of(Map.of("code", "invalid_reset_token")));
     return problem;
   }
 
