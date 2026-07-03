@@ -75,6 +75,11 @@ docker-compose.override.yml
 .claude/local/
 .cache/
 
+# Claude Code session worktrees — never commit these. One was accidentally
+# committed as a gitlink once, which broke `git submodule foreach` cleanup in
+# every GitHub Actions job ("No url found for submodule path ... in .gitmodules").
+.claude/worktrees/
+
 # Anthropic-installed / user-scope skills live as `<name>/SKILL.md`
 # subdirectories under .claude/skills/. Our project-scoped skills are flat
 # `<name>.md` files at the same level — those stay tracked. This pattern
