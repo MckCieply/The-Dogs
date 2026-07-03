@@ -37,5 +37,7 @@ The `field` key is present only for validation errors.
 | `refresh_revoked` | 401 | The refresh token has been explicitly revoked (e.g. via logout or family revocation) | AUTH-03 |
 | `refresh_expired` | 401 | The refresh token exists but its 7-day expiry has passed; re-login required | AUTH-03 |
 | `invalid_refresh` | 401 | The refresh token value does not match any row in the database | AUTH-03 |
+| `email_taken` | 409 | Registration attempted with an email that already has an account (case-insensitive) | AUTH-04 |
+| `password_too_weak` | 400 | Password scored below 3 on the zxcvbn 0–4 scale; the error object carries an optional integer extension field `password_score` with the measured score so clients can render "score N of 4" without re-running zxcvbn | AUTH-04 |
 
 Later features must append new codes to this table with their feature slug in the "Registered by" column. The reviewer enforces this.
