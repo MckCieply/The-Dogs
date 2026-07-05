@@ -4,12 +4,13 @@ import { AuthStore } from '../services/auth.store';
 
 /**
  * Protects routes that require authentication.
- * Redirects to /login when no access token is in memory.
  *
- * Note: After a hard refresh the token is lost (by design — ADR-0003).
- * A future enhancement may attempt a silent refresh before redirecting.
+ * The access token lives in memory only (ADR-0003), so after a hard reload it is always gone —
+ * but the HttpOnly refresh cookie usually is not. Before redirecting to /login, attempt one
+ * silent refresh: if the cookie is valid the whole session (token + identity) is restored and
+ * navigation proceeds; only when the refresh fails does the user land on the login page.
  */
-export const authGuard: CanActivateFn = () => {
+export const authGuard: CanActivateFn = async () => {
   const authStore = inject(AuthStore);
   const router = inject(Router);
 
@@ -17,5 +18,10 @@ export const authGuard: CanActivateFn = () => {
     return true;
   }
 
-  return router.createUrlTree(['/login']);
+  try {
+    await authStore.refresh();
+    return true;
+  } catch {
+    return router.createUrlTree(['/login']);
+  }
 };

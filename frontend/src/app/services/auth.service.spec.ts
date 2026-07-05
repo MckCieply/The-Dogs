@@ -34,6 +34,7 @@ describe('AuthService', () => {
       tokenType: 'Bearer',
       expiresIn: 900,
       email: 'trainer@example.com',
+      displayName: 'Trainer',
       roles: ['ROLE_TRAINER'],
     };
 
@@ -57,8 +58,10 @@ describe('AuthService', () => {
   it('refresh() posts to /auth/refresh with credentials', async () => {
     const mockResponse: RefreshResponse = {
       accessToken: 'refreshed-token',
-      tokenType: 'Bearer',
       expiresIn: 900,
+      email: 'trainer@example.com',
+      displayName: 'Trainer',
+      roles: ['ROLE_TRAINER'],
     };
 
     const refreshPromise = service.refresh();

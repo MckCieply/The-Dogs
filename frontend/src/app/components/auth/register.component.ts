@@ -290,7 +290,8 @@ export class RegisterComponent {
       );
       // Same wire-up as login: token in memory, refresh cookie already set by the backend.
       this.authStore.setToken(response.accessToken, {
-        email: this.form.controls['email'].value as string,
+        email: response.email,
+        displayName: response.displayName,
         roles: response.roles ?? [],
       });
       await this.router.navigate(['/']);

@@ -71,7 +71,11 @@ export const AuthStore = signalStore(
         const response = await authService.login(email, password);
         patchState(store, {
           accessToken: response.accessToken,
-          user: { email: response.email, roles: response.roles },
+          user: {
+            email: response.email,
+            displayName: response.displayName,
+            roles: response.roles,
+          },
           loading: false,
           error: null,
         });
@@ -104,7 +108,16 @@ export const AuthStore = signalStore(
       refreshInFlight ??= authService
         .refresh()
         .then((response) => {
-          patchState(store, { accessToken: response.accessToken });
+          patchState(store, {
+            accessToken: response.accessToken,
+            // The refresh response carries identity so a hard reload (memory-only
+            // token lost, cookie intact) restores the full session, not just the token.
+            user: {
+              email: response.email,
+              displayName: response.displayName,
+              roles: response.roles,
+            },
+          });
           return response.accessToken;
         })
         .finally(() => {

@@ -18,7 +18,11 @@ describe('AuthStore', () => {
     refresh: ReturnType<typeof vi.fn>;
   };
 
-  const TEST_USER: AuthUser = { email: 'trainer@example.com', roles: ['ROLE_TRAINER'] };
+  const TEST_USER: AuthUser = {
+    email: 'trainer@example.com',
+    displayName: 'Trainer',
+    roles: ['ROLE_TRAINER'],
+  };
   const TEST_TOKEN = 'header.payload.signature';
 
   const LOGIN_RESPONSE: LoginResponse = {
@@ -26,13 +30,16 @@ describe('AuthStore', () => {
     tokenType: 'Bearer',
     expiresIn: 900,
     email: 'trainer@example.com',
+    displayName: 'Trainer',
     roles: ['ROLE_TRAINER'],
   };
 
   const REFRESH_RESPONSE: RefreshResponse = {
     accessToken: 'refreshed-token',
-    tokenType: 'Bearer',
     expiresIn: 900,
+    email: 'trainer@example.com',
+    displayName: 'Trainer',
+    roles: ['ROLE_TRAINER'],
   };
 
   beforeEach(() => {
@@ -178,7 +185,11 @@ describe('AuthStore', () => {
     await store.login('trainer@example.com', 'secret');
 
     expect(store.accessToken()).toBe(TEST_TOKEN);
-    expect(store.user()).toEqual({ email: 'trainer@example.com', roles: ['ROLE_TRAINER'] });
+    expect(store.user()).toEqual({
+      email: 'trainer@example.com',
+      displayName: 'Trainer',
+      roles: ['ROLE_TRAINER'],
+    });
     expect(store.loading()).toBe(false);
     expect(store.error()).toBeNull();
   });
