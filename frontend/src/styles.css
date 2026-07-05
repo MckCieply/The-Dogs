@@ -22,6 +22,16 @@
   width: 100%;
 }
 
+/*
+ * WCAG AA (axe-core, nightly ci-e2e): PrimeNG Aura's error-message red (#dc2626)
+ * sits on its own #fef3f3 background at 4.44:1 contrast — just under the 4.5:1
+ * threshold for normal-size text. Darken to Tailwind red-700 (≈6:1).
+ */
+.p-message.p-message-error,
+.p-message.p-message-error .p-message-text {
+  color: #b91c1c;
+}
+
 html,
 body {
   margin: 0;

@@ -27,6 +27,29 @@ export interface AuthUser {
   roles: string[];
 }
 
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  displayName: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+/** One entry of the RFC 7807 `errors` array emitted by the backend. */
+export interface ApiFieldError {
+  code: string;
+  field?: string;
+  /** AUTH-04: zxcvbn score (0–4) attached to password_too_weak errors. */
+  password_score?: number;
+}
+
 export interface ApiError {
   type: string;
   title: string;

@@ -290,6 +290,32 @@ describe('AuthStore', () => {
     expect(authServiceMock.refresh).toHaveBeenCalledTimes(1);
   });
 
+  it('concurrent refresh calls share a single HTTP refresh (silent-refresh queue)', async () => {
+    // AUTH-06: refresh tokens rotate on use — a second concurrent call presenting the
+    // already-consumed token would trip theft detection and revoke the whole session.
+    let release!: (value: RefreshResponse) => void;
+    authServiceMock.refresh.mockReturnValue(
+      new Promise<RefreshResponse>((r) => (release = r)),
+    );
+
+    const first = store.refresh();
+    const second = store.refresh();
+    release(REFRESH_RESPONSE);
+
+    await expect(first).resolves.toBe('refreshed-token');
+    await expect(second).resolves.toBe('refreshed-token');
+    expect(authServiceMock.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('a new refresh after the previous one settles performs a fresh HTTP call', async () => {
+    authServiceMock.refresh.mockResolvedValue(REFRESH_RESPONSE);
+
+    await store.refresh();
+    await store.refresh();
+
+    expect(authServiceMock.refresh).toHaveBeenCalledTimes(2);
+  });
+
   it('refresh re-throws when AuthService.refresh rejects', async () => {
     authServiceMock.refresh.mockRejectedValue(new Error('session expired'));
 
