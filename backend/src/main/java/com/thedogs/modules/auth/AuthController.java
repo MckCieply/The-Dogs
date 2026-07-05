@@ -1,8 +1,11 @@
 package com.thedogs.modules.auth;
 
+import com.thedogs.modules.auth.dto.ForgotPasswordRequest;
 import com.thedogs.modules.auth.dto.LoginRequest;
 import com.thedogs.modules.auth.dto.LoginResponse;
 import com.thedogs.modules.auth.dto.RefreshResponse;
+import com.thedogs.modules.auth.dto.RegisterRequest;
+import com.thedogs.modules.auth.dto.ResetPasswordRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -29,8 +32,39 @@ public class AuthController {
   private static final String REFRESH_COOKIE_NAME = "refresh_token";
 
   private final AuthService authService;
+  private final RegistrationService registrationService;
+  private final PasswordResetService passwordResetService;
   private final TokenService tokenService;
   private final RefreshTokenService refreshTokenService;
+
+  @Operation(
+      summary = "Register a new account",
+      description =
+          "Creates a user with server-side zxcvbn password-strength enforcement (score >= 3),"
+              + " case-insensitive email uniqueness, and first-user-becomes-admin bootstrap."
+              + " Issues the same access-token + refresh-cookie pair as /auth/login.")
+  @ApiResponses({
+    @ApiResponse(
+        responseCode = "201",
+        description = "Account created; access JWT in body, refresh_token cookie set"),
+    @ApiResponse(
+        responseCode = "400",
+        description = "Validation failed (field_* codes) or password too weak (password_too_weak)"),
+    @ApiResponse(responseCode = "409", description = "Email already registered (email_taken)"),
+    @ApiResponse(
+        responseCode = "429",
+        description = "More than 3 registrations from this IP within an hour (too_many_attempts)")
+  })
+  @PostMapping("/register")
+  public ResponseEntity<LoginResponse> register(
+      @Valid @RequestBody RegisterRequest request,
+      HttpServletRequest httpRequest,
+      HttpServletResponse response) {
+    AuthService.LoginResult result = registrationService.register(request, httpRequest);
+    setRefreshCookie(response, result.refreshToken());
+    return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
+        .body(result.loginResponse());
+  }
 
   @PostMapping("/login")
   public ResponseEntity<LoginResponse> login(
@@ -95,6 +129,50 @@ public class AuthController {
             .build();
 
     return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, cleared.toString()).build();
+  }
+
+  @Operation(
+      summary = "Request a password reset",
+      description =
+          "Creates a reset token for the account if the email exists. Always returns 204 with"
+              + " identical timing whether or not the email is known (anti-enumeration). The token"
+              + " is delivered out-of-band by an admin (ADR-0013 - no SMTP).")
+  @ApiResponses({
+    @ApiResponse(responseCode = "204", description = "Accepted (whether or not the email exists)"),
+    @ApiResponse(
+        responseCode = "429",
+        description = "More than 3 requests for this email within an hour (too_many_attempts)")
+  })
+  @PostMapping("/forgot-password")
+  public ResponseEntity<Void> forgotPassword(
+      @Valid @RequestBody ForgotPasswordRequest request, HttpServletRequest httpRequest) {
+    passwordResetService.forgotPassword(request.email(), IpAddressExtractor.extract(httpRequest));
+    return ResponseEntity.noContent().build();
+  }
+
+  @Operation(
+      summary = "Reset password with a token",
+      description =
+          "Consumes a single-use reset token, updates the password (zxcvbn score >= 3 enforced"
+              + " server-side), and revokes every active refresh token so all sessions are logged"
+              + " out.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "204", description = "Password updated; all sessions revoked"),
+    @ApiResponse(
+        responseCode = "400",
+        description =
+            "Token unknown/used/expired (invalid_reset_token) or weak password"
+                + " (password_too_weak)"),
+    @ApiResponse(
+        responseCode = "429",
+        description = "More than 10 attempts from this IP within an hour (too_many_attempts)")
+  })
+  @PostMapping("/reset-password")
+  public ResponseEntity<Void> resetPassword(
+      @Valid @RequestBody ResetPasswordRequest request, HttpServletRequest httpRequest) {
+    passwordResetService.resetPassword(
+        request.token(), request.newPassword(), IpAddressExtractor.extract(httpRequest));
+    return ResponseEntity.noContent().build();
   }
 
   private void setRefreshCookie(HttpServletResponse response, String token) {

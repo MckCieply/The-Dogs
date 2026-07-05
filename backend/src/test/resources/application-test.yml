@@ -30,6 +30,11 @@ jwt:
   access-token-ttl-minutes: 15
   refresh-token-ttl-days: 7
 
+app:
+  password-reset:
+    # AC-12: the dev-mode token log helper is exercised (and asserted) in the test profile.
+    log-token-on-create: true
+
 logging:
   level:
     com.thedogs: INFO

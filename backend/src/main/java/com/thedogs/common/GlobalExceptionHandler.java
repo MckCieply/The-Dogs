@@ -2,7 +2,10 @@ package com.thedogs.common;
 
 import com.thedogs.modules.auth.AccountDisabledException;
 import com.thedogs.modules.auth.TooManyLoginAttemptsException;
+import com.thedogs.modules.auth.exception.EmailTakenException;
 import com.thedogs.modules.auth.exception.InvalidRefreshTokenException;
+import com.thedogs.modules.auth.exception.InvalidResetTokenException;
+import com.thedogs.modules.auth.exception.PasswordTooWeakException;
 import com.thedogs.modules.auth.exception.RefreshTokenExpiredException;
 import com.thedogs.modules.auth.exception.RefreshTokenReusedException;
 import com.thedogs.modules.auth.exception.RefreshTokenRevokedException;
@@ -78,6 +81,45 @@ public class GlobalExceptionHandler {
     problem.setTitle("Conflict");
     problem.setDetail("The operation could not be completed due to a conflict.");
     problem.setProperty("errors", List.of(Map.of("code", "conflict")));
+    return problem;
+  }
+
+  @ExceptionHandler(EmailTakenException.class)
+  public ProblemDetail handleEmailTaken(EmailTakenException ex) {
+    ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.CONFLICT);
+    problem.setType(URI.create(BASE_TYPE + "conflict"));
+    problem.setTitle("Conflict");
+    problem.setDetail("An account with this email address already exists.");
+    problem.setProperty("errors", List.of(Map.of("code", "email_taken", "field", "email")));
+    return problem;
+  }
+
+  @ExceptionHandler(PasswordTooWeakException.class)
+  public ProblemDetail handlePasswordTooWeak(PasswordTooWeakException ex) {
+    ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+    problem.setType(URI.create(BASE_TYPE + "validation"));
+    problem.setTitle("Validation Failed");
+    problem.setDetail("The password is too easy to guess.");
+    // password_score is an extension field (AUTH-04 AC-3) so the frontend can render
+    // "score N of 4" without re-running zxcvbn client-side.
+    problem.setProperty(
+        "errors",
+        List.of(
+            Map.of(
+                "code", "password_too_weak",
+                "field", "password",
+                "password_score", ex.getScore())));
+    return problem;
+  }
+
+  @ExceptionHandler(InvalidResetTokenException.class)
+  public ProblemDetail handleInvalidResetToken(InvalidResetTokenException ex) {
+    ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+    problem.setType(URI.create(BASE_TYPE + "validation"));
+    problem.setTitle("Validation Failed");
+    // One detail for unknown, used, AND expired tokens — clients must not distinguish (AC-8/9).
+    problem.setDetail("The reset token is invalid.");
+    problem.setProperty("errors", List.of(Map.of("code", "invalid_reset_token")));
     return problem;
   }
 

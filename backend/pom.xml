@@ -151,6 +151,13 @@
       <version>8.10.1</version>
     </dependency>
 
+    <!-- zxcvbn — server-side password strength estimation (AUTH-04) -->
+    <dependency>
+      <groupId>com.nulab-inc</groupId>
+      <artifactId>zxcvbn</artifactId>
+      <version>1.9.0</version>
+    </dependency>
+
     <!-- Test dependencies -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

@@ -82,11 +82,17 @@ public class SecurityConfig {
             auth ->
                 auth
                     // Add explicit paths here; never use a wildcard for /auth/** without review
+                    .requestMatchers(HttpMethod.POST, "/api/v1/auth/register")
+                    .permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/v1/auth/login")
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/v1/auth/refresh")
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/v1/auth/forgot-password")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/v1/auth/reset-password")
                     .permitAll()
                     .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
                     .permitAll()
