@@ -142,7 +142,7 @@ public class RegistrationService {
         sha256Hex(refreshTokenValue));
 
     return new AuthService.LoginResult(
-        LoginResponse.bearer(accessToken, tokenService.getAccessTokenTtlSeconds()),
+        LoginResponse.bearer(accessToken, tokenService.getAccessTokenTtlSeconds(), user),
         refreshTokenValue);
   }
 

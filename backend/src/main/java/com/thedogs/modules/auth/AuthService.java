@@ -125,7 +125,7 @@ public class AuthService {
         tokenHash);
 
     return new LoginResult(
-        LoginResponse.bearer(accessToken, tokenService.getAccessTokenTtlSeconds()),
+        LoginResponse.bearer(accessToken, tokenService.getAccessTokenTtlSeconds(), user),
         refreshTokenValue);
   }
 
@@ -148,7 +148,7 @@ public class AuthService {
 
     String newAccessToken = tokenService.generateAccessToken(user);
     return new RefreshResult(
-        new RefreshResponse(newAccessToken, tokenService.getAccessTokenTtlSeconds()),
+        RefreshResponse.of(newAccessToken, tokenService.getAccessTokenTtlSeconds(), user),
         newRefreshToken);
   }
 

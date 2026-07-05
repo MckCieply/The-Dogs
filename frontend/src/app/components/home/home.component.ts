@@ -39,7 +39,8 @@ import { AuthStore } from '../../services/auth.store';
       <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div class="text-center">
           <h2 class="text-2xl font-bold text-gray-900 mb-2">
-            Welcome, {{ authStore.currentUser()?.email }}
+            Welcome,
+            {{ authStore.currentUser()?.displayName || authStore.currentUser()?.email }}
           </h2>
           <p class="text-gray-500">
             Dog management features are coming soon.

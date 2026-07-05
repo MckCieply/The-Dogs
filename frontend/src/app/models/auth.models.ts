@@ -13,17 +13,23 @@ export interface LoginResponse {
   tokenType: 'Bearer';
   expiresIn: number; // seconds
   email: string;
+  displayName: string;
   roles: string[];
 }
 
 export interface RefreshResponse {
   accessToken: string;
-  tokenType: 'Bearer';
   expiresIn: number;
+  // Identity fields so a hard reload can restore the whole session from the
+  // refresh cookie alone (access token + user are memory-only per ADR-0003).
+  email: string;
+  displayName: string;
+  roles: string[];
 }
 
 export interface AuthUser {
   email: string;
+  displayName: string;
   roles: string[];
 }
 

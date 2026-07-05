@@ -34,7 +34,7 @@ describe('authInterceptor', () => {
   });
 
   it('adds Authorization header when token is set', async () => {
-    authStore.setToken('my-token', { email: 'trainer@example.com', roles: ['ROLE_TRAINER'] });
+    authStore.setToken('my-token', { email: 'trainer@example.com', displayName: 'Trainer', roles: ['ROLE_TRAINER'] });
 
     const req$ = http.get('/api/v1/dogs').subscribe();
     const req = httpMock.expectOne('/api/v1/dogs');
@@ -53,7 +53,7 @@ describe('authInterceptor', () => {
   });
 
   it('on 401, attempts silent refresh and retries original request', async () => {
-    authStore.setToken('expired-token', { email: 'trainer@example.com', roles: ['ROLE_TRAINER'] });
+    authStore.setToken('expired-token', { email: 'trainer@example.com', displayName: 'Trainer', roles: ['ROLE_TRAINER'] });
 
     // Spy on authStore.refresh to return new token
     vi.spyOn(authStore, 'refresh').mockResolvedValue('new-token');
@@ -78,7 +78,7 @@ describe('authInterceptor', () => {
   });
 
   it('clears token when refresh fails on 401', async () => {
-    authStore.setToken('expired-token', { email: 'trainer@example.com', roles: ['ROLE_TRAINER'] });
+    authStore.setToken('expired-token', { email: 'trainer@example.com', displayName: 'Trainer', roles: ['ROLE_TRAINER'] });
 
     vi.spyOn(authStore, 'refresh').mockRejectedValue(new Error('Refresh failed'));
 
