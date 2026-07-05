@@ -62,7 +62,7 @@ import { AuthStore } from '../../services/auth.store';
                 />
               </div>
               @if (emailInvalid()) {
-                <small id="email-error" class="text-red-600 text-xs" role="alert">
+                <small id="email-error" class="text-red-700 text-xs" role="alert">
                   Please enter a valid email address.
                 </small>
               }
@@ -91,7 +91,7 @@ import { AuthStore } from '../../services/auth.store';
                 />
               </div>
               @if (passwordInvalid()) {
-                <small id="password-error" class="text-red-600 text-xs" role="alert">
+                <small id="password-error" class="text-red-700 text-xs" role="alert">
                   Password is required.
                 </small>
               }

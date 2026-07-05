@@ -70,7 +70,7 @@ import { PasswordStrengthMeterComponent } from './password-strength-meter.compon
                 (input)="clearServerError('email')"
               />
               @if (emailError(); as err) {
-                <small id="email-error" class="text-red-600 text-xs" role="alert">
+                <small id="email-error" class="text-red-700 text-xs" role="alert">
                   {{ err }}
                 </small>
               }
@@ -93,7 +93,7 @@ import { PasswordStrengthMeterComponent } from './password-strength-meter.compon
                 aria-required="true"
               />
               @if (touchedInvalid('displayName')) {
-                <small class="text-red-600 text-xs" role="alert">
+                <small class="text-red-700 text-xs" role="alert">
                   Display name is required (max 80 characters).
                 </small>
               }
@@ -121,10 +121,10 @@ import { PasswordStrengthMeterComponent } from './password-strength-meter.compon
                 (scoreChange)="meterScore.set($event)"
               />
               @if (passwordServerError(); as err) {
-                <small class="text-red-600 text-xs" role="alert">{{ err }}</small>
+                <small class="text-red-700 text-xs" role="alert">{{ err }}</small>
               }
               @if (passwordTooShort()) {
-                <small class="text-red-600 text-xs" role="alert">
+                <small class="text-red-700 text-xs" role="alert">
                   Password must be 10–128 characters.
                 </small>
               }
@@ -147,7 +147,7 @@ import { PasswordStrengthMeterComponent } from './password-strength-meter.compon
                 aria-required="true"
               />
               @if (confirmMismatch()) {
-                <small class="text-red-600 text-xs" role="alert">
+                <small class="text-red-700 text-xs" role="alert">
                   Passwords do not match.
                 </small>
               }

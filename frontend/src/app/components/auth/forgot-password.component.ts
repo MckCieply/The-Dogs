@@ -70,7 +70,7 @@ import { AuthService } from '../../services/auth.service';
                   aria-required="true"
                 />
                 @if (form.controls['email'].touched && form.controls['email'].invalid) {
-                  <small class="text-red-600 text-xs" role="alert">
+                  <small class="text-red-700 text-xs" role="alert">
                     Please enter a valid email address.
                   </small>
                 }

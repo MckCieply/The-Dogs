@@ -74,7 +74,7 @@ import { PasswordStrengthMeterComponent } from './password-strength-meter.compon
                   aria-required="true"
                 />
                 @if (form.controls['token'].touched && form.controls['token'].invalid) {
-                  <small class="text-red-600 text-xs" role="alert">
+                  <small class="text-red-700 text-xs" role="alert">
                     The reset token is required.
                   </small>
                 }

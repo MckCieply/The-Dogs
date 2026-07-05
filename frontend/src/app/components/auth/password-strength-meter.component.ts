@@ -173,7 +173,7 @@ export class PasswordStrengthMeterComponent {
   protected labelClass(): string {
     const s = this.score();
     if (s === null) return 'text-gray-500';
-    return s >= 3 ? 'text-green-700' : 'text-red-600';
+    return s >= 3 ? 'text-green-700' : 'text-red-700';
   }
 
   protected feedback(): string | null {

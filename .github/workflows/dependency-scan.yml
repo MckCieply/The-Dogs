@@ -145,7 +145,10 @@ jobs:
       - name: License scan
         working-directory: frontend
         run: |
-          npx --yes license-checker --production --excludePrivatePackages \
+          # Install explicitly instead of `npx --yes`: on the runners npx sometimes fails to
+          # link the license-checker bin ("sh: 1: license-checker: not found", exit 127).
+          npm install --no-save license-checker
+          npx license-checker --production --excludePrivatePackages \
             --json > license-report.json
           # Fail on GPL/AGPL anywhere in the production tree per ADR-0008.
           if node -e "
