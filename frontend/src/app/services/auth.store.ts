@@ -34,7 +34,16 @@ export const AuthStore = signalStore(
     isLoading: computed(() => store.loading()),
     authError: computed(() => store.error()),
   })),
-  withMethods((store, authService = inject(AuthService)) => ({
+  withMethods((store, authService = inject(AuthService)) => {
+    /**
+     * Single in-flight refresh shared by all callers (AUTH-06 silent-refresh queue).
+     * Refresh tokens rotate on every use: if two requests racing the same 401 each
+     * called the endpoint, the second would present the already-consumed token and
+     * trip the backend's theft detection — revoking the entire session family.
+     */
+    let refreshInFlight: Promise<string> | null = null;
+
+    return {
     setToken(token: string, user: AuthUser): void {
       patchState(store, { accessToken: token, user, error: null });
     },
@@ -92,11 +101,19 @@ export const AuthStore = signalStore(
     },
 
     async refresh(): Promise<string> {
-      const response = await authService.refresh();
-      patchState(store, { accessToken: response.accessToken });
-      return response.accessToken;
+      refreshInFlight ??= authService
+        .refresh()
+        .then((response) => {
+          patchState(store, { accessToken: response.accessToken });
+          return response.accessToken;
+        })
+        .finally(() => {
+          refreshInFlight = null;
+        });
+      return refreshInFlight;
     },
-  })),
+    };
+  }),
   withHooks({
     onInit() {
       // No token hydration from storage — per ADR-0003, access tokens are in memory only.
