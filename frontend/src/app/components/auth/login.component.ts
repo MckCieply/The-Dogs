@@ -5,7 +5,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
@@ -18,6 +18,7 @@ import { AuthStore } from '../../services/auth.store';
   standalone: true,
   imports: [
     ReactiveFormsModule,
+    RouterLink,
     ButtonModule,
     InputTextModule,
     PasswordModule,
@@ -115,6 +116,16 @@ import { AuthStore } from '../../services/auth.store';
               [disabled]="authStore.isLoading()"
             />
           </form>
+
+          <div class="text-sm text-gray-500 text-center mt-6 flex flex-col gap-1">
+            <span>
+              No account yet?
+              <a routerLink="/register" class="text-primary underline">Create one</a>
+            </span>
+            <a routerLink="/forgot-password" class="text-primary underline">
+              Forgot your password?
+            </a>
+          </div>
         </div>
       </div>
     </div>

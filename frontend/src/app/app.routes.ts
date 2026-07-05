@@ -18,6 +18,30 @@ export const routes: Routes = [
     title: 'Sign in — The Dogs',
   },
   {
+    path: 'register',
+    loadComponent: () =>
+      import('./components/auth/register.component').then(
+        (m) => m.RegisterComponent,
+      ),
+    title: 'Create account — The Dogs',
+  },
+  {
+    path: 'forgot-password',
+    loadComponent: () =>
+      import('./components/auth/forgot-password.component').then(
+        (m) => m.ForgotPasswordComponent,
+      ),
+    title: 'Reset password — The Dogs',
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./components/auth/reset-password.component').then(
+        (m) => m.ResetPasswordComponent,
+      ),
+    title: 'Choose a new password — The Dogs',
+  },
+  {
     path: '**',
     redirectTo: '',
   },
