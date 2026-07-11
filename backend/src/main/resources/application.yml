@@ -32,6 +32,10 @@ app:
     # MUST stay false outside dev/test — a leaked prod log would compromise every outstanding
     # token. The test profile overrides this to true (AC-12 asserts both directions).
     log-token-on-create: false
+  email-verification:
+    # Same posture as password-reset above (AUTH-09): raw verification tokens are logged at INFO
+    # on creation only when true. MUST stay false outside dev/test.
+    log-token-on-create: false
 
 springdoc:
   api-docs:

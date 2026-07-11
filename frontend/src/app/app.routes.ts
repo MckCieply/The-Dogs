@@ -26,6 +26,14 @@ export const routes: Routes = [
     title: 'Create account — The Dogs',
   },
   {
+    path: 'confirm-email',
+    loadComponent: () =>
+      import('./components/auth/confirm-email.component').then(
+        (m) => m.ConfirmEmailComponent,
+      ),
+    title: 'Confirm your email — The Dogs',
+  },
+  {
     path: 'forgot-password',
     loadComponent: () =>
       import('./components/auth/forgot-password.component').then(

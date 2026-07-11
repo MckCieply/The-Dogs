@@ -6,6 +6,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
@@ -98,7 +99,23 @@ import { AuthStore } from '../../services/auth.store';
             </div>
 
             <!-- Server error -->
-            @if (authStore.authError()) {
+            @if (needsVerification()) {
+              <p-message
+                severity="warn"
+                text="Your email address has not been confirmed yet. Confirm it to sign in."
+                styleClass="w-full mb-4"
+                role="alert"
+              />
+              <p class="text-sm text-center mb-4">
+                <a
+                  routerLink="/confirm-email"
+                  [queryParams]="{ email: loginForm.controls['email'].value }"
+                  class="text-primary underline"
+                >
+                  Confirm your email
+                </a>
+              </p>
+            } @else if (authStore.authError()) {
               <p-message
                 severity="error"
                 [text]="authStore.authError()!"
@@ -149,6 +166,8 @@ export class LoginComponent {
 
   protected emailInvalid = signal(false);
   protected passwordInvalid = signal(false);
+  /** AUTH-09: correct credentials but unconfirmed email — offer the confirmation page. */
+  protected needsVerification = signal(false);
 
   async onSubmit(): Promise<void> {
     this.loginForm.markAllAsTouched();
@@ -161,14 +180,23 @@ export class LoginComponent {
 
     if (this.loginForm.invalid) return;
 
+    this.needsVerification.set(false);
     try {
       await this.authStore.login(
         emailCtrl!.value as string,
         passwordCtrl!.value as string,
       );
       await this.router.navigate(['/']);
-    } catch {
-      // Error is already set in the store; template reads authStore.authError()
+    } catch (err: unknown) {
+      // Other errors are already set in the store; template reads authStore.authError()
+      if (
+        err instanceof HttpErrorResponse &&
+        (err.error?.errors ?? []).some(
+          (e: { code?: string }) => e.code === 'email_not_verified',
+        )
+      ) {
+        this.needsVerification.set(true);
+      }
     }
   }
 }

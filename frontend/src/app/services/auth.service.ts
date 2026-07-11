@@ -70,6 +70,27 @@ export class AuthService {
   }
 
   /**
+   * POST /api/v1/auth/confirm-email (AUTH-09)
+   * Consumes the out-of-band verification token and unlocks login for the account.
+   */
+  confirmEmail(token: string): Promise<void> {
+    return firstValueFrom(
+      this.http.post<void>(`${this.BASE}/confirm-email`, { token }),
+    );
+  }
+
+  /**
+   * POST /api/v1/auth/resend-confirmation (AUTH-09)
+   * Always resolves on 204 — the backend never discloses whether the email exists
+   * or is already verified.
+   */
+  resendConfirmation(email: string): Promise<void> {
+    return firstValueFrom(
+      this.http.post<void>(`${this.BASE}/resend-confirmation`, { email }),
+    );
+  }
+
+  /**
    * POST /api/v1/auth/refresh
    * The browser automatically sends the HttpOnly refresh-token cookie.
    * Returns a fresh access token.

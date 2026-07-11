@@ -44,6 +44,7 @@ public class RegistrationService {
   private final RegistrationRateLimiter rateLimiter;
   private final TokenService tokenService;
   private final RefreshTokenService refreshTokenService;
+  private final EmailVerificationService emailVerificationService;
 
   /**
    * Self-reference to the Spring proxy of this bean so the non-transactional {@link #register}
@@ -111,6 +112,9 @@ public class RegistrationService {
             .passwordHash(passwordEncoder.encode(request.password()))
             .displayName(request.displayName())
             .roles(Set.of(role))
+            // AUTH-09: self-registered accounts start unverified; login is gated until the
+            // verification token (dev log / admin endpoint, ADR-0013 pattern) is consumed.
+            .emailVerified(false)
             .build();
 
     try {
@@ -120,6 +124,10 @@ public class RegistrationService {
       // inserted row (admin SQL, tests) can still race the pre-check.
       throw new EmailTakenException();
     }
+
+    // Same transaction as the insert (MANDATORY propagation): no user without a token, no token
+    // without a user.
+    emailVerificationService.issueForNewUser(user, rawIp);
 
     log.info(
         "event=registration_success userId={} role={} displayName={}",

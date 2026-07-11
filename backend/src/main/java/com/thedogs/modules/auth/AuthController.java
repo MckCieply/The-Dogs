@@ -1,10 +1,12 @@
 package com.thedogs.modules.auth;
 
+import com.thedogs.modules.auth.dto.ConfirmEmailRequest;
 import com.thedogs.modules.auth.dto.ForgotPasswordRequest;
 import com.thedogs.modules.auth.dto.LoginRequest;
 import com.thedogs.modules.auth.dto.LoginResponse;
 import com.thedogs.modules.auth.dto.RefreshResponse;
 import com.thedogs.modules.auth.dto.RegisterRequest;
+import com.thedogs.modules.auth.dto.ResendConfirmationRequest;
 import com.thedogs.modules.auth.dto.ResetPasswordRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -34,6 +36,7 @@ public class AuthController {
   private final AuthService authService;
   private final RegistrationService registrationService;
   private final PasswordResetService passwordResetService;
+  private final EmailVerificationService emailVerificationService;
   private final TokenService tokenService;
   private final RefreshTokenService refreshTokenService;
 
@@ -172,6 +175,48 @@ public class AuthController {
       @Valid @RequestBody ResetPasswordRequest request, HttpServletRequest httpRequest) {
     passwordResetService.resetPassword(
         request.token(), request.newPassword(), IpAddressExtractor.extract(httpRequest));
+    return ResponseEntity.noContent().build();
+  }
+
+  @Operation(
+      summary = "Confirm an email address with a token",
+      description =
+          "Consumes a single-use verification token (delivered out-of-band per ADR-0013 — no"
+              + " SMTP) and marks the account's email as verified, unlocking login.")
+  @ApiResponses({
+    @ApiResponse(responseCode = "204", description = "Email verified; login unlocked"),
+    @ApiResponse(
+        responseCode = "400",
+        description = "Token unknown/used/expired (invalid_verification_token)"),
+    @ApiResponse(
+        responseCode = "429",
+        description = "More than 10 attempts from this IP within an hour (too_many_attempts)")
+  })
+  @PostMapping("/confirm-email")
+  public ResponseEntity<Void> confirmEmail(
+      @Valid @RequestBody ConfirmEmailRequest request, HttpServletRequest httpRequest) {
+    emailVerificationService.confirmEmail(request.token(), IpAddressExtractor.extract(httpRequest));
+    return ResponseEntity.noContent().build();
+  }
+
+  @Operation(
+      summary = "Re-issue an email-verification token",
+      description =
+          "Rotates the verification token for the account if the email exists and is still"
+              + " unverified. Always returns 204 with identical timing whether or not the email is"
+              + " known (anti-enumeration). The token is delivered out-of-band by an admin"
+              + " (ADR-0013 - no SMTP).")
+  @ApiResponses({
+    @ApiResponse(responseCode = "204", description = "Accepted (whether or not the email exists)"),
+    @ApiResponse(
+        responseCode = "429",
+        description = "More than 3 requests for this email within an hour (too_many_attempts)")
+  })
+  @PostMapping("/resend-confirmation")
+  public ResponseEntity<Void> resendConfirmation(
+      @Valid @RequestBody ResendConfirmationRequest request, HttpServletRequest httpRequest) {
+    emailVerificationService.resendConfirmation(
+        request.email(), IpAddressExtractor.extract(httpRequest));
     return ResponseEntity.noContent().build();
   }
 

@@ -34,6 +34,9 @@ app:
   password-reset:
     # AC-12: the dev-mode token log helper is exercised (and asserted) in the test profile.
     log-token-on-create: true
+  email-verification:
+    # AUTH-09: same dev-mode helper as password-reset, exercised in tests the same way.
+    log-token-on-create: true
 
 logging:
   level:

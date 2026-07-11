@@ -103,6 +103,16 @@ public class AuthService {
       throw new BadCredentialsException("bad_credentials");
     }
 
+    // Step 6b: email-verification gate (AUTH-09). Deliberately AFTER the password check so an
+    // attacker without the password cannot probe whether an account is verified.
+    if (!user.isEmailVerified()) {
+      log.info(
+          "event=login_failure reason=email_not_verified emailHash={} ip={}",
+          sha256Hex(request.email().toLowerCase(Locale.ROOT)),
+          maskedIp);
+      throw new EmailNotVerifiedException();
+    }
+
     // Step 7: success — generate tokens and persist refresh token row
     log.info("event=login_success userId={} ip={}", user.getId(), maskedIp);
 
