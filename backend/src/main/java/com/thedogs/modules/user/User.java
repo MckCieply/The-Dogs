@@ -51,6 +51,15 @@ public class User extends BaseEntity implements UserDetails {
   @Builder.Default
   private boolean enabled = true;
 
+  /**
+   * AUTH-09: login is gated on this flag. Builder default TRUE matches the V6 migration's
+   * grandfathering of pre-existing accounts (and keeps directly-built test users loginable);
+   * RegistrationService explicitly sets FALSE for every self-service registration.
+   */
+  @Column(name = "email_verified", nullable = false)
+  @Builder.Default
+  private boolean emailVerified = true;
+
   @Builder.Default
   @ManyToMany(fetch = FetchType.EAGER)
   @JoinTable(

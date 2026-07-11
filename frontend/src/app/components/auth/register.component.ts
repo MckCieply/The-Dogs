@@ -294,7 +294,11 @@ export class RegisterComponent {
         displayName: response.displayName,
         roles: response.roles ?? [],
       });
-      await this.router.navigate(['/']);
+      // AUTH-09: the grace session is live, but the next sign-in requires a confirmed email —
+      // land on the confirmation page so the user learns that now, not at their next login.
+      await this.router.navigate(['/confirm-email'], {
+        queryParams: { registered: 1, email: response.email },
+      });
     } catch (err: unknown) {
       this.handleError(err);
     } finally {

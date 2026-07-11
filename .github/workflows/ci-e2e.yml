@@ -29,6 +29,13 @@ jobs:
       github.event_name != 'pull_request' ||
       contains(github.event.pull_request.labels.*.name, 'run-e2e')
 
+    # Single source of truth for the account frontend/e2e/auth-refresh-logout.spec.ts logs in
+    # as. The compose stack is a fresh DB every run (down -v below), so nothing else creates
+    # this user — see "Seed e2e test account" below.
+    env:
+      E2E_TEST_EMAIL: e2e-trainer@example.com
+      E2E_TEST_PASSWORD: 'Xk4$vQr9!wZp2mNt'
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -75,6 +82,42 @@ jobs:
             docker compose logs --tail 100
             exit 1
           fi
+
+      # Every run starts from an empty DB, so the account auth-refresh-logout.spec.ts logs in
+      # as never exists unless we create it here. Registration also strength-checks the password
+      # (zxcvbn >= 3, see PasswordStrengthValidator) — E2E_TEST_PASSWORD is a random 16-char
+      # string for that reason, not a memorable passphrase.
+      #
+      # AUTH-09 gates login on a confirmed email, so seeding is register + confirm. The first
+      # registered user is bootstrapped as ROLE_ADMIN, and registration returns a grace-session
+      # access token — that token authorizes the admin verification-token fetch (ADR-0013
+      # pattern: no SMTP, tokens are retrieved out-of-band).
+      - name: Seed e2e test account
+        run: |
+          status=$(curl -s -o /tmp/register-response.json -w '%{http_code}' \
+            -X POST http://localhost:8080/api/v1/auth/register \
+            -H 'Content-Type: application/json' \
+            -d "{\"email\":\"$E2E_TEST_EMAIL\",\"password\":\"$E2E_TEST_PASSWORD\",\"displayName\":\"E2E Trainer\"}")
+          if [[ "$status" != "201" ]]; then
+            echo "::error::Failed to seed e2e test account (HTTP $status)"
+            cat /tmp/register-response.json
+            exit 1
+          fi
+          access_token=$(jq -r '.accessToken' /tmp/register-response.json)
+          verify_token=$(curl -sf \
+            -H "Authorization: Bearer $access_token" \
+            "http://localhost:8080/api/v1/admin/email-verification-tokens?email=$E2E_TEST_EMAIL" \
+            | jq -r '.token')
+          status=$(curl -s -o /tmp/confirm-response.json -w '%{http_code}' \
+            -X POST http://localhost:8080/api/v1/auth/confirm-email \
+            -H 'Content-Type: application/json' \
+            -d "{\"token\":\"$verify_token\"}")
+          if [[ "$status" != "204" ]]; then
+            echo "::error::Failed to confirm e2e test account email (HTTP $status)"
+            cat /tmp/confirm-response.json
+            exit 1
+          fi
+          echo "Seeded and email-confirmed e2e test account ($E2E_TEST_EMAIL)"
 
       - name: Install frontend dependencies (Playwright runner)
         working-directory: frontend

@@ -1,10 +1,12 @@
 package com.thedogs.common;
 
 import com.thedogs.modules.auth.AccountDisabledException;
+import com.thedogs.modules.auth.EmailNotVerifiedException;
 import com.thedogs.modules.auth.TooManyLoginAttemptsException;
 import com.thedogs.modules.auth.exception.EmailTakenException;
 import com.thedogs.modules.auth.exception.InvalidRefreshTokenException;
 import com.thedogs.modules.auth.exception.InvalidResetTokenException;
+import com.thedogs.modules.auth.exception.InvalidVerificationTokenException;
 import com.thedogs.modules.auth.exception.PasswordTooWeakException;
 import com.thedogs.modules.auth.exception.RefreshTokenExpiredException;
 import com.thedogs.modules.auth.exception.RefreshTokenReusedException;
@@ -120,6 +122,27 @@ public class GlobalExceptionHandler {
     // One detail for unknown, used, AND expired tokens — clients must not distinguish (AC-8/9).
     problem.setDetail("The reset token is invalid.");
     problem.setProperty("errors", List.of(Map.of("code", "invalid_reset_token")));
+    return problem;
+  }
+
+  @ExceptionHandler(InvalidVerificationTokenException.class)
+  public ProblemDetail handleInvalidVerificationToken(InvalidVerificationTokenException ex) {
+    ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+    problem.setType(URI.create(BASE_TYPE + "validation"));
+    problem.setTitle("Validation Failed");
+    // One detail for unknown, used, AND expired tokens — clients must not distinguish.
+    problem.setDetail("The verification token is invalid.");
+    problem.setProperty("errors", List.of(Map.of("code", "invalid_verification_token")));
+    return problem;
+  }
+
+  @ExceptionHandler(EmailNotVerifiedException.class)
+  public ProblemDetail handleEmailNotVerified(EmailNotVerifiedException ex) {
+    ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
+    problem.setType(URI.create(BASE_TYPE + "unauthorized"));
+    problem.setTitle("Unauthorized");
+    problem.setDetail("Email address not verified");
+    problem.setProperty("errors", List.of(Map.of("code", "email_not_verified")));
     return problem;
   }
 
